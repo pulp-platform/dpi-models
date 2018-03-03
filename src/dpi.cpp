@@ -215,8 +215,31 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
   {
     *itf_type = (const char *)"QSPIM";
     *itf_name = strdup(binding->port.c_str());
-    *itf_id = atoi(&chip_port_name[4]);
-    *itf_sub_id = atoi(&chip_port_name[6]);
+    if (strlen(chip_port_name) > 4)
+    {
+      *itf_id = atoi(&chip_port_name[4]);
+      *itf_sub_id = atoi(&chip_port_name[6]);
+    }
+  }
+  else if (strncmp(chip_port_name, "jtag", 4) == 0)
+  {
+    *itf_type = (const char *)"JTAG";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 4)
+    {
+      *itf_id = atoi(&chip_port_name[4]);
+      *itf_sub_id = 0;
+    }
+  }
+  else if (strncmp(chip_port_name, "ctrl", 4) == 0)
+  {
+    *itf_type = (const char *)"CTRL";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 4)
+    {
+      *itf_id = atoi(&chip_port_name[4]);
+      *itf_sub_id = 0;
+    }
   }
 }
 
@@ -250,4 +273,18 @@ void *dpi_model_load(void *handle)
   }
 
   return periph_api->model_load(handle);
+}
+
+int dpi_model_start(void *handle)
+{
+  Dpi_model *model = (Dpi_model *)handle;
+  model->start();
+  return 0;
+}
+
+
+int dpi_start_task(void *arg1, void *arg2)
+{
+  ((void (*)(void *))arg1)(arg2);
+  return 0;
 }

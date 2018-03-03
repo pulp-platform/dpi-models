@@ -71,11 +71,26 @@ void Dpi_model::print(const char *format, ...)
   }
 }
 
+void Dpi_model::create_task(void *arg1, void *arg2)
+{
+  dpi_create_task(arg1, arg2);
+}
 
 Dpi_model::Dpi_model(js::config *config) : config(config)
 {
 
 }
+
+void Dpi_model::wait(int64_t ns)
+{
+  dpi_wait(ns);
+}
+
+void Dpi_model::wait_ps(int64_t ps)
+{
+  dpi_wait_ps(ps);
+}
+
 
 void Dpi_itf::bind(void *handle)
 {

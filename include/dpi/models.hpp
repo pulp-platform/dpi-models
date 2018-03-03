@@ -47,6 +47,22 @@ class Qspi_itf : public Dpi_itf
 
 
 
+class Jtag_itf : public Dpi_itf
+{
+  public:
+    void tck_edge(int tck, int tdi, int tms, int trst, int *tdo);
+};
+
+
+
+class Ctrl_itf : public Dpi_itf
+{
+  public:
+    void reset_edge(int reset);
+};
+
+
+
 
 class Dpi_model
 {
@@ -54,6 +70,10 @@ public:
   Dpi_model(js::config *config);
   void *bind_itf(std::string name, void *handle);
   void create_itf(std::string name, Dpi_itf *itf);
+  void create_task(void *arg1, void *arg2);
+  void wait(int64_t ns);
+  void wait_ps(int64_t ps);
+  virtual void start() {};
 
 protected:
   void print(const char *format, ...);

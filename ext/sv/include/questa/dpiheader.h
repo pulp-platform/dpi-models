@@ -46,6 +46,13 @@ dpi_config_get_str(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_ctrl_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_driver_get_comp_config(
     void* driver_handle,
     int index);
@@ -85,8 +92,20 @@ dpi_driver_set_config(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_jtag_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_model_load(
     void* comp_config);
+
+DPI_LINK_DECL DPI_DLLESPEC
+int
+dpi_model_start(
+    void* model);
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
@@ -113,6 +132,31 @@ dpi_qspim_sck_edge(
     svLogic data_2,
     svLogic data_3);
 
+DPI_LINK_DECL DPI_DLLESPEC
+int
+dpi_start_task(
+    void* arg1,
+    void* arg2);
+
+DPI_LINK_DECL int
+dpi_create_task(
+    void* arg1,
+    void* arg2);
+
+DPI_LINK_DECL void
+dpi_ctrl_reset_edge(
+    int handle,
+    int reset);
+
+DPI_LINK_DECL void
+dpi_jtag_tck_edge(
+    int handle,
+    int tck,
+    int tdi,
+    int tms,
+    int trst,
+    int* tdo);
+
 DPI_LINK_DECL void
 dpi_print(
     void* handle,
@@ -125,5 +169,13 @@ dpi_qspim_set_data(
     int data_1,
     int data_2,
     int data_3);
+
+DPI_LINK_DECL int
+dpi_wait(
+    int64_t t);
+
+DPI_LINK_DECL int
+dpi_wait_ps(
+    int64_t t);
 
 #endif 

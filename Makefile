@@ -13,8 +13,8 @@ PERIPH_CFLAGS += $(CFLAGS) $(DPI_CFLAGS)
 PERIPH_LDFLAGS += $(LDFLAGS)  -Wl,-export-dynamic -ldl -rdynamic
 
 ifdef VSIM_INCLUDE
-DPI_SRCS = src/dpi.cpp src/qspim.cpp
-PERIPH_SRCS = src/models.cpp src/qspim.cpp
+DPI_SRCS = src/dpi.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp
+PERIPH_SRCS = src/models.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp
 endif
 
 DPI_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/dpi/%.o,$(patsubst %.c,$(BUILD_DIR)/dpi/%.o,$(DPI_SRCS)))
