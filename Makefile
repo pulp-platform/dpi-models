@@ -65,6 +65,7 @@ INSTALL_TARGETS += $(PULP_SDK_HOME)/install/ws/lib/libpulpperiph.so
 INSTALL_TARGETS += $(PULP_SDK_HOME)/install/ws/lib/libpulpdpi.so
 
 HEADER_FILES += $(shell find include -name *.hpp)
+HEADER_FILES += $(shell find include -name *.h)
 
 
 define declareInstallFile

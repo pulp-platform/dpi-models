@@ -67,7 +67,7 @@ class Ctrl_itf : public Dpi_itf
 class Dpi_model
 {
 public:
-  Dpi_model(js::config *config);
+  Dpi_model(js::config *config, void *handle);
   void *bind_itf(std::string name, void *handle);
   void create_itf(std::string name, Dpi_itf *itf);
   void create_task(void *arg1, void *arg2);
@@ -82,6 +82,7 @@ protected:
 private:
   js::config *config;
   std::map<std::string, Dpi_itf *> itfs;
+  void *handle;
 };
 
 

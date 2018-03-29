@@ -100,7 +100,8 @@ dpi_jtag_bind(
 DPI_LINK_DECL DPI_DLLESPEC
 void*
 dpi_model_load(
-    void* comp_config);
+    void* comp_config,
+    void* handle);
 
 DPI_LINK_DECL DPI_DLLESPEC
 int
@@ -140,6 +141,7 @@ dpi_start_task(
 
 DPI_LINK_DECL int
 dpi_create_task(
+    void *handle,
     void* arg1,
     void* arg2);
 
@@ -172,10 +174,12 @@ dpi_qspim_set_data(
 
 DPI_LINK_DECL int
 dpi_wait(
+    void *handle,
     int64_t t);
 
 DPI_LINK_DECL int
 dpi_wait_ps(
+    void *handle,
     int64_t t);
 
 #endif 

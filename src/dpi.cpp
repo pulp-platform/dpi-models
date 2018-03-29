@@ -32,6 +32,8 @@
 #include "svdpi.h"
 #include "questa/dpiheader.h"
 
+#include "dpi/tb_driver.h"
+
 
 
 // NOTE for DPI models integration with Questasim.
@@ -44,7 +46,7 @@
 // This structure to group to entry functions of the proxy library.
 typedef struct
 {
-  void *(*model_load)(void *handle);
+  void *(*model_load)(void *config, void *handle);
 } libperiph_api_t;
 
 // Part of the JSON configuration that the testbench should use
@@ -129,7 +131,7 @@ const char *dpi_config_get_str(void *config)
 void *dpi_driver_set_config(void *handle)
 {
   js::config *config = (js::config *)handle;
-  driver_config = config->get("**/board");
+  driver_config = config->get("**/system_tree/board");
   js::config *tb_comps_config = driver_config->get("tb_comps");
   driver_nb_comp = tb_comps_config->get_size();
   return NULL;
@@ -245,7 +247,7 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
 
 
 // Load the DPI model for the specified component JSON descriptor
-void *dpi_model_load(void *handle)
+void *dpi_model_load(void *config, void *handle)
 {
   // Due to the limitations of questasim on dynamic symbols (see note at the
   // top), we have to dynamically load the library managing DPI models).
@@ -262,7 +264,7 @@ void *dpi_model_load(void *handle)
 
     libperiph_api_t *api = new libperiph_api_t;
 
-    api->model_load = (void * (*)(void *handle))dlsym(libperiph, "model_load");
+    api->model_load = (void * (*)(void *config, void *handle))dlsym(libperiph, "model_load");
     if (api->model_load == NULL)
     {
       dpi_print(NULL, "ERROR, didn't find symbol model_load in Pulp periph models library");
@@ -272,7 +274,7 @@ void *dpi_model_load(void *handle)
     periph_api = api;
   }
 
-  return periph_api->model_load(handle);
+  return periph_api->model_load(config, handle);
 }
 
 int dpi_model_start(void *handle)

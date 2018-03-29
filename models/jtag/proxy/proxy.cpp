@@ -39,7 +39,7 @@ class Proxy : public Dpi_model
 {
 
 public:
-  Proxy(js::config *config);
+  Proxy(js::config *config, void *handle);
 
   void start();
 
@@ -80,7 +80,7 @@ private:
 
 
 
-Proxy::Proxy(js::config *config) : Dpi_model(config)
+Proxy::Proxy(js::config *config, void *handle) : Dpi_model(config, handle)
 {
   port = config->get("port")->get_int();
   verbose = config->get("verbose")->get_bool();
@@ -358,7 +358,7 @@ void Proxy::dpi_task()
 
 
 
-extern "C" Dpi_model *dpi_model_new(js::config *config)
+extern "C" Dpi_model *dpi_model_new(js::config *config, void *handle)
 {
-  return new Proxy(config);
+  return new Proxy(config, handle);
 }
