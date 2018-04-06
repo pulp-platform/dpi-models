@@ -182,4 +182,12 @@ dpi_wait_ps(
     void *handle,
     int64_t t);
 
+DPI_LINK_DECL void
+dpi_wait_event(
+    void *handle);
+
+DPI_LINK_DECL void
+dpi_raise_event(
+    void *handle);
+
 #endif 

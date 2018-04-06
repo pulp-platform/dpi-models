@@ -24,6 +24,8 @@
 #include <sys/prctl.h>
 #include <netinet/in.h>
 #include <stdint.h>
+#include <unistd.h>
+
 
 #include "dpi/models.hpp"
 #include "debug_bridge/proxy.hpp"
@@ -117,6 +119,7 @@ void Proxy::jtag_buff_flush()
   pthread_mutex_lock(&mutex);
   while(has_req || jtag_has_buff) pthread_cond_wait(&cond, &mutex);
   jtag_has_buff = true;
+  raise_event();
   while(jtag_has_buff) pthread_cond_wait(&cond, &mutex);
   pthread_mutex_unlock(&mutex);
   jtag_buff_current = 0;
@@ -280,6 +283,7 @@ void Proxy::dpi_task()
   //dpi_jtag_set(0, 0, 0, 1);
   //dpi_wait(1000000);
   while(1) {
+
     if (has_req || has_str || jtag_has_buff) {
       pthread_mutex_lock(&mutex);
 
@@ -351,8 +355,10 @@ void Proxy::dpi_task()
       }
 #endif
       pthread_mutex_unlock(&mutex);
+    } else {
+      wait_event();
     }
-    wait(100);
+
   }
 }
 

@@ -91,6 +91,16 @@ void Dpi_model::wait_ps(int64_t ps)
   dpi_wait_ps(handle, ps);
 }
 
+void Dpi_model::wait_event()
+{
+  dpi_wait_event(handle);
+}
+
+void Dpi_model::raise_event()
+{
+  dpi_raise_event(handle);
+}
+
 
 void Dpi_itf::bind(void *handle)
 {

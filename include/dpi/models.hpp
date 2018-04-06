@@ -73,6 +73,8 @@ public:
   void create_task(void *arg1, void *arg2);
   void wait(int64_t ns);
   void wait_ps(int64_t ps);
+  void wait_event();
+  void raise_event();
   virtual void start() {};
 
 protected:
