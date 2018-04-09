@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-/* 
+/*
  * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
  */
 
+#ifndef __EXT_NOSV_SVDP_H__
+#define __EXT_NOSV_SVDP_H__
 
-#include <stdint.h>
-#include <stdio.h>
+#define DPI_DLLESPEC
+typedef uint8_t svLogic;
 
-#include "dpi/models.hpp"
-
-void *dpi_ctrl_bind(void *comp_handle, const char *name, int handle)
-{
-  Dpi_model *model = (Dpi_model *)comp_handle;
-  return model->bind_itf(name, (void *)(long)handle);
-}
-
-
-void Ctrl_itf::reset_edge(int reset)
-{
-  dpi_ctrl_reset_edge((int)(long)sv_handle, reset);
-}
+#endif

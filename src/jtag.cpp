@@ -24,9 +24,6 @@
 
 #include "dpi/models.hpp"
 
-#include "svdpi.h"
-#include "questa/dpiheader.h"
-
 void *dpi_jtag_bind(void *comp_handle, const char *name, int handle)
 {
   Dpi_model *model = (Dpi_model *)comp_handle;

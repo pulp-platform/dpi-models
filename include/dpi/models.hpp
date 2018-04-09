@@ -24,6 +24,10 @@
 #include <json.hpp>
 #include <map>
 
+#ifdef USE_DPI
+#include "questa/dpiheader.h"
+#endif
+
 
 
 class Dpi_itf

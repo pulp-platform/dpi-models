@@ -23,9 +23,6 @@
 
 #include "dpi/models.hpp"
 
-#include "svdpi.h"
-#include "questa/dpiheader.h"
-
 void dpi_qspim_cs_edge(void *handle, int64_t timestamp, svLogic scn)
 {
 }

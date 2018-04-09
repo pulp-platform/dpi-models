@@ -27,11 +27,6 @@
 
 #include "dpi/models.hpp"
 
-#ifdef USE_DPI
-#include "svdpi.h"
-#include "questa/dpiheader.h"
-#endif
-
 
 static void dpi_print_stub(const char *format, ...)
 {
