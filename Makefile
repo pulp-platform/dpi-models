@@ -53,6 +53,7 @@ $(BUILD_DIR)/libpulpperiph.so: $(PERIPH_OBJS)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	make -C models clean
 
 
 $(PULP_SDK_HOME)/install/ws/lib/libpulpdpi.so: $(BUILD_DIR)/libpulpdpi.so

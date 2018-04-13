@@ -88,7 +88,6 @@ private:
 };
 
 
-extern "C" void dummy_func2();
 
 
 Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, handle)
