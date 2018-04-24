@@ -6,16 +6,20 @@ CFLAGS += -std=gnu++11 -MMD -MP -O3 -g
 CFLAGS += -I$(PULP_SDK_HOME)/install/ws/include -fPIC
 LDFLAGS += -L$(PULP_SDK_HOME)/install/ws/lib -fPIC -shared -O3 -g -ljson
 
-DPI_CFLAGS += $(CFLAGS) -DUSE_DPI -I$(VSIM_INCLUDE) -Iext/sv/include
+DPI_CFLAGS += $(CFLAGS) -DUSE_DPI
 DPI_LDFLAGS += $(LDFLAGS)  -Wl,-export-dynamic -ldl -rdynamic -lpulpperiph
+
+ifdef VSIM_INCLUDE
+DPI_CFLAGS += -Iext/sv/include -I$(VSIM_INCLUDE) -DVSIM_INCLUDE=1
+else
+DPI_CFLAGS += -Iext/sv/include -Iext/nosv
+endif
 
 PERIPH_CFLAGS += $(CFLAGS) $(DPI_CFLAGS)
 PERIPH_LDFLAGS += $(LDFLAGS)  -Wl,-export-dynamic -ldl -rdynamic
 
-ifdef VSIM_INCLUDE
-DPI_SRCS = src/dpi.cpp src/qspim.cpp
-PERIPH_SRCS = src/models.cpp src/qspim.cpp
-endif
+DPI_SRCS = src/dpi.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp
+PERIPH_SRCS = src/models.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp
 
 DPI_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/dpi/%.o,$(patsubst %.c,$(BUILD_DIR)/dpi/%.o,$(DPI_SRCS)))
 PERIPH_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/periph/%.o,$(patsubst %.c,$(BUILD_DIR)/periph/%.o,$(PERIPH_SRCS)))
@@ -49,6 +53,7 @@ $(BUILD_DIR)/libpulpperiph.so: $(PERIPH_OBJS)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	make -C models clean
 
 
 $(PULP_SDK_HOME)/install/ws/lib/libpulpdpi.so: $(BUILD_DIR)/libpulpdpi.so
@@ -65,6 +70,7 @@ INSTALL_TARGETS += $(PULP_SDK_HOME)/install/ws/lib/libpulpperiph.so
 INSTALL_TARGETS += $(PULP_SDK_HOME)/install/ws/lib/libpulpdpi.so
 
 HEADER_FILES += $(shell find include -name *.hpp)
+HEADER_FILES += $(shell find include -name *.h)
 
 
 define declareInstallFile

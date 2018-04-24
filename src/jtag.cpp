@@ -18,33 +18,20 @@
  * Authors: Germain Haugou, ETH (germain.haugou@iis.ee.ethz.ch)
  */
 
+
 #include <stdint.h>
 #include <stdio.h>
 
 #include "dpi/models.hpp"
 
-void dpi_qspim_cs_edge(void *handle, int64_t timestamp, svLogic scn)
-{
-}
-
-void dpi_qspim_sck_edge(void *handle, int64_t timestamp, svLogic sck, svLogic data_0, svLogic data_1, svLogic data_2, svLogic data_3)
-{
-  Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
-  itf->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3);
-}
-
-void *dpi_qspim_bind(void *comp_handle, const char *name, int handle)
+void *dpi_jtag_bind(void *comp_handle, const char *name, int handle)
 {
   Dpi_model *model = (Dpi_model *)comp_handle;
   return model->bind_itf(name, (void *)(long)handle);
 }
 
-void Qspi_itf::set_data(int data_0)
-{
-  dpi_qspim_set_data((int)(long)sv_handle, 0, data_0, 0, 0);
-}
 
-void Qspi_itf::set_qpi_data(int data_0, int data_1, int data_2, int data_3)
+void Jtag_itf::tck_edge(int tck, int tdi, int tms, int trst, int *tdo)
 {
-  dpi_qspim_set_data((int)(long)sv_handle, data_0, data_1, data_2, data_3);
+  dpi_jtag_tck_edge((int)(long)sv_handle, tck, tdi, tms, trst, tdo);
 }

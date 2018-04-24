@@ -27,11 +27,6 @@
 
 #include "dpi/models.hpp"
 
-#ifdef USE_DPI
-#include "svdpi.h"
-#include "questa/dpiheader.h"
-#endif
-
 
 static void dpi_print_stub(const char *format, ...)
 {
@@ -71,11 +66,36 @@ void Dpi_model::print(const char *format, ...)
   }
 }
 
+void Dpi_model::create_task(void *arg1, void *arg2)
+{
+  dpi_create_task(handle, arg1, arg2);
+}
 
-Dpi_model::Dpi_model(js::config *config) : config(config)
+Dpi_model::Dpi_model(js::config *config, void *handle) : config(config), handle(handle)
 {
 
 }
+
+void Dpi_model::wait(int64_t ns)
+{
+  dpi_wait(handle, ns);
+}
+
+void Dpi_model::wait_ps(int64_t ps)
+{
+  dpi_wait_ps(handle, ps);
+}
+
+void Dpi_model::wait_event()
+{
+  dpi_wait_event(handle);
+}
+
+void Dpi_model::raise_event()
+{
+  dpi_raise_event(handle);
+}
+
 
 void Dpi_itf::bind(void *handle)
 {
@@ -98,9 +118,9 @@ js::config *Dpi_model::get_config()
   return config;
 }
 
-extern "C" void *model_load(void *handle)
+extern "C" void *model_load(void *_config, void *handle)
 {
-  js::config *config = (js::config *)handle;
+  js::config *config = (js::config *)_config;
   const char *module_name = config->get("module")->get_str().c_str();
 
   void *module = dlopen(module_name, RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
@@ -110,7 +130,7 @@ extern "C" void *model_load(void *handle)
     return NULL;
   }
 
-  Dpi_model *(*model_new)(js::config *) = (Dpi_model *(*)(js::config *))dlsym(module, "dpi_model_new");
+  Dpi_model *(*model_new)(js::config *, void *) = (Dpi_model *(*)(js::config *, void *))dlsym(module, "dpi_model_new");
 
-  return model_new(config);
+  return model_new(config, handle);
 }

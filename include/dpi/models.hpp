@@ -24,6 +24,10 @@
 #include <json.hpp>
 #include <map>
 
+#ifdef USE_DPI
+#include "questa/dpiheader.h"
+#endif
+
 
 
 class Dpi_itf
@@ -47,13 +51,35 @@ class Qspi_itf : public Dpi_itf
 
 
 
+class Jtag_itf : public Dpi_itf
+{
+  public:
+    void tck_edge(int tck, int tdi, int tms, int trst, int *tdo);
+};
+
+
+
+class Ctrl_itf : public Dpi_itf
+{
+  public:
+    void reset_edge(int reset);
+};
+
+
+
 
 class Dpi_model
 {
 public:
-  Dpi_model(js::config *config);
+  Dpi_model(js::config *config, void *handle);
   void *bind_itf(std::string name, void *handle);
   void create_itf(std::string name, Dpi_itf *itf);
+  void create_task(void *arg1, void *arg2);
+  void wait(int64_t ns);
+  void wait_ps(int64_t ps);
+  void wait_event();
+  void raise_event();
+  virtual void start() {};
 
 protected:
   void print(const char *format, ...);
@@ -62,6 +88,7 @@ protected:
 private:
   js::config *config;
   std::map<std::string, Dpi_itf *> itfs;
+  void *handle;
 };
 
 

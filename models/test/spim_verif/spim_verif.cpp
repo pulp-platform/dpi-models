@@ -56,7 +56,7 @@ class Spim_verif : public Dpi_model
   friend class Spim_verif_qspi_itf;
 
 public:
-  Spim_verif(js::config *config);
+  Spim_verif(js::config *config, void *handle);
 
 protected:
 
@@ -88,10 +88,9 @@ private:
 };
 
 
-extern "C" void dummy_func2();
 
 
-Spim_verif::Spim_verif(js::config *config) : Dpi_model(config)
+Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, handle)
 {
   int mem_size = config->get("mem_size")->get_int();
   verbose = config->get("verbose")->get_bool();
@@ -219,7 +218,7 @@ void Spim_verif::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int 
   prev_sck = sck;
 }
 
-extern "C" Dpi_model *dpi_model_new(js::config *config)
+extern "C" Dpi_model *dpi_model_new(js::config *config, void *handle)
 {
-  return new Spim_verif(config);
+  return new Spim_verif(config, handle);
 }
