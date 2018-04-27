@@ -59,6 +59,15 @@ class Jtag_itf : public Dpi_itf
 
 
 
+class Uart_itf : public Dpi_itf
+{
+  public:
+    virtual void edge(int64_t timestamp, int data) {}
+};
+
+
+
+
 class Ctrl_itf : public Dpi_itf
 {
   public:

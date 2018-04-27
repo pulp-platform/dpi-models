@@ -99,6 +99,13 @@ dpi_jtag_bind(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_uart_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_model_load(
     void* comp_config,
     void* handle);
@@ -158,6 +165,13 @@ dpi_jtag_tck_edge(
     int tms,
     int trst,
     int* tdo);
+
+
+DPI_LINK_DECL void
+dpi_uart_edge(
+    void* handle,
+    int64_t timestamp,
+    int data);
 
 DPI_LINK_DECL void
 dpi_print(

@@ -93,6 +93,9 @@ int dpi_start_task(void *arg1, void *arg2);
 
 void *dpi_jtag_bind(void *comp_handle, const char *name, int handle);
 
+void *dpi_uart_bind(void *comp_handle, const char *name, int handle);
+
+void dpi_uart_edge(void *handle, int64_t timestamp, int data);
 
 
 

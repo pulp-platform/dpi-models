@@ -237,6 +237,21 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
       *itf_sub_id = 0;
     }
   }
+  else if (strncmp(chip_port_name, "uart", 4) == 0)
+  {
+    *itf_type = (const char *)"UART";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 4)
+    {
+      *itf_id = atoi(&chip_port_name[4]);
+      *itf_sub_id = 0;
+    }
+    else
+    {
+      *itf_id = 0;
+      *itf_sub_id = 0;
+    }
+  }
   else if (strncmp(chip_port_name, "ctrl", 4) == 0)
   {
     *itf_type = (const char *)"CTRL";

@@ -28,7 +28,7 @@
 #include "dpi/models.hpp"
 
 
-static void dpi_print_stub(const char *format, ...)
+static void dpi_print_stub(void *handle, const char *format, ...)
 {
   int size = 1024;
   while(1)
@@ -40,7 +40,7 @@ static void dpi_print_stub(const char *format, ...)
     va_end(ap);
     if (iter_size <= size)
     {
-      dpi_print(NULL, str);
+      dpi_print(handle, str);
       break;
     }
     size = iter_size;
@@ -59,7 +59,7 @@ void Dpi_model::print(const char *format, ...)
     va_end(ap);
     if (iter_size <= size)
     {
-      dpi_print(NULL, str);
+      dpi_print(handle, str);
       break;
     }
     size = iter_size;
@@ -126,7 +126,7 @@ extern "C" void *model_load(void *_config, void *handle)
   void *module = dlopen(module_name, RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
   if (module == NULL)
   {
-    dpi_print_stub("ERROR, Failed to open periph model (%s) with error: %s", module_name, dlerror());
+    dpi_print_stub(handle, "ERROR, Failed to open periph model (%s) with error: %s", module_name, dlerror());
     return NULL;
   }
 
