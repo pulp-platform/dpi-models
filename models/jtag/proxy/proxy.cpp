@@ -135,6 +135,7 @@ void Proxy::reset_req(int value)
   reset_set = true;
   reset_value = value;
   raise_event();
+  while(reset_set) pthread_cond_wait(&cond, &mutex);
   pthread_mutex_unlock(&mutex);
 }
 
@@ -293,6 +294,7 @@ void Proxy::dpi_task()
         reset_set = false;
         has_req = false;
         ctrl->reset_edge(reset_value);
+        wait(1000000);
         pthread_cond_signal(&cond);
         pthread_mutex_unlock(&mutex);
         continue;

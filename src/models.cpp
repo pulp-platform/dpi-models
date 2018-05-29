@@ -91,9 +91,14 @@ void Dpi_model::wait_event()
   dpi_wait_event(handle);
 }
 
+// This function is only useful on virtual platform to avoid active polling
+// between the a task and a thread
 void Dpi_model::raise_event()
 {
-  dpi_raise_event(handle);
+  // TODO
+  // Dirty hack to not call system verilog task from pthread on RTL platform
+  if (handle)
+    dpi_raise_event(handle);
 }
 
 
