@@ -148,7 +148,7 @@ dpi_start_task(
 
 DPI_LINK_DECL int
 dpi_create_task(
-    void *handle,
+    void* handle,
     void* arg1,
     void* arg2);
 
@@ -156,6 +156,11 @@ DPI_LINK_DECL void
 dpi_ctrl_reset_edge(
     int handle,
     int reset);
+
+DPI_LINK_DECL void
+dpi_fatal(
+    void* handle,
+    const char* msg);
 
 DPI_LINK_DECL void
 dpi_jtag_tck_edge(
@@ -166,12 +171,12 @@ dpi_jtag_tck_edge(
     int trst,
     int* tdo);
 
-
 DPI_LINK_DECL void
 dpi_uart_edge(
     void* handle,
     int64_t timestamp,
     int data);
+
 
 DPI_LINK_DECL void
 dpi_print(
@@ -187,21 +192,21 @@ dpi_qspim_set_data(
     int data_3);
 
 DPI_LINK_DECL int
+dpi_raise_event(
+    void* handle);
+
+DPI_LINK_DECL int
 dpi_wait(
-    void *handle,
+    void* handle,
     int64_t t);
 
 DPI_LINK_DECL int
-dpi_wait_ps(
-    void *handle,
-    int64_t t);
-
-DPI_LINK_DECL void
 dpi_wait_event(
-    void *handle);
+    void* handle);
 
-DPI_LINK_DECL void
-dpi_raise_event(
-    void *handle);
+DPI_LINK_DECL int
+dpi_wait_ps(
+    void* handle,
+    int64_t t);
 
 #endif 

@@ -28,6 +28,25 @@
 #include "dpi/models.hpp"
 
 
+static void dpi_fatal_stub(void *handle, const char *format, ...)
+{
+  int size = 1024;
+  while(1)
+  {
+    char str[size];
+    va_list ap;
+    va_start(ap, format);
+    int iter_size = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    if (iter_size <= size)
+    {
+      dpi_fatal(handle, str);
+      break;
+    }
+    size = iter_size;
+  }
+}
+
 static void dpi_print_stub(void *handle, const char *format, ...)
 {
   int size = 1024;
@@ -131,11 +150,16 @@ extern "C" void *model_load(void *_config, void *handle)
   void *module = dlopen(module_name, RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
   if (module == NULL)
   {
-    dpi_print_stub(handle, "ERROR, Failed to open periph model (%s) with error: %s", module_name, dlerror());
+    dpi_fatal_stub(handle, "ERROR, Failed to open periph model (%s) with error: %s", module_name, dlerror());
     return NULL;
   }
 
   Dpi_model *(*model_new)(js::config *, void *) = (Dpi_model *(*)(js::config *, void *))dlsym(module, "dpi_model_new");
+  if (model_new == NULL)
+  {
+    dpi_fatal_stub(handle, "ERROR, invalid DPI model being loaded (%s)", module_name);
+    return NULL;
+  }
 
   return model_new(config, handle);
 }

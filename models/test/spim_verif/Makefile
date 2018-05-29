@@ -1,3 +1,3 @@
-DPI_MODELS += spim_verif
+DPI_MODELS += spim_tb
 
-spim_verif_SRCS = test/spim_verif/spim_verif.cpp
+spim_tb_SRCS = test/spim_verif/spim_verif.cpp

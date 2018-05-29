@@ -1,3 +1,3 @@
-DPI_MODELS += proxy
+DPI_MODELS += jtag_proxy
 
-proxy_SRCS = jtag/proxy/proxy.cpp
+jtag_proxy_SRCS = jtag/proxy/proxy.cpp
