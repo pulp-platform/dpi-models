@@ -93,7 +93,9 @@ Proxy::Proxy(js::config *config, void *handle) : Dpi_model(config, handle)
   create_itf("jtag", static_cast<Jtag_itf *>(jtag));
   ctrl = new Ctrl_itf();
   create_itf("ctrl", static_cast<Ctrl_itf *>(ctrl));
-  open_proxy();
+
+  if (config->get("active")->get_bool())
+    open_proxy();
 }
 
 void Proxy::start()
