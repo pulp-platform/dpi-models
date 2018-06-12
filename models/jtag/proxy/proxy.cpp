@@ -267,9 +267,9 @@ bool Proxy::open_proxy() {
     return false;
   }
 
-  listener_thread = new std::thread(&Proxy::proxy_listener, this);
-
   fprintf(stderr, "Proxy listening on port %d\n", port);
+
+  listener_thread = new std::thread(&Proxy::proxy_listener, this);
 
   return true;
 }
@@ -316,13 +316,14 @@ void Proxy::dpi_task()
 
       if (jtag_has_buff) {
         for (int i=0; i<jtag_buff_current; i++) {
+          int dummy;
           jtag_cycle_t *elem = &jtag_buff[i];
           //fprintf(stderr, "JTAG_DBG: JTAG buff cycle (trstn: %d, tdi: %d, tms: %d)\n", elem->trstn, elem->tdi, elem->tms);
           jtag->tck_edge(0, elem->tdi, elem->tms, elem->trstn, &elem->tdo);
           wait(50);
           jtag->tck_edge(1, elem->tdi, elem->tms, elem->trstn, &elem->tdo);
           wait(50);
-          jtag->tck_edge(0, elem->tdi, elem->tms, elem->trstn, &elem->tdo);
+          jtag->tck_edge(0, elem->tdi, elem->tms, elem->trstn, &dummy);
           //fprintf(stderr, "JTAG_DBG: TDO=%d\n", elem->tdo);
         }
         jtag_has_buff = false;
