@@ -145,7 +145,15 @@ js::config *Dpi_model::get_config()
 extern "C" void *model_load(void *_config, void *handle)
 {
   js::config *config = (js::config *)_config;
-  const char *module_name = config->get("module")->get_str().c_str();
+  js::config *module_config = config->get("module");
+  if (module_config == NULL)
+  {
+    dpi_fatal_stub(handle, "ERROR, Failed to open periph model, didn't find configuration item 'model'");
+    return NULL; 
+  }
+
+
+  const char *module_name = module_config->get_str().c_str();
 
   void *module = dlopen(module_name, RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
   if (module == NULL)

@@ -205,6 +205,9 @@ void Proxy::proxy_loop(int sock)
 void Proxy::proxy_listener()
 {
   int client;
+
+  fprintf(stderr, "Proxy listening on port %d\n", port);
+
   while(1) {
     if((client = accept(proxy_socket_in, NULL, NULL)) == -1) {
       if(errno == EAGAIN) continue;
@@ -266,8 +269,6 @@ bool Proxy::open_proxy() {
     fprintf(stderr, "Didn't manage to open socket\n");
     return false;
   }
-
-  fprintf(stderr, "Proxy listening on port %d\n", port);
 
   listener_thread = new std::thread(&Proxy::proxy_listener, this);
 

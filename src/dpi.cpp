@@ -164,13 +164,14 @@ int dpi_driver_get_nb_comp(void *handle)
       std::string slave_port = slave_desc.erase(0, slave_desc.find(delimiter) + delimiter.length());
 
       std::string comp;
+
       if (master == "chip")
       {
         dpi_comps_map[slave]->reg_binding(new Dpi_comp_Binding(slave_port, master_port));
       }
       else
       {
-        dpi_comps_map[slave]->reg_binding(new Dpi_comp_Binding(master_port, slave_port));
+        dpi_comps_map[master]->reg_binding(new Dpi_comp_Binding(master_port, slave_port));
       }
     }
   }
