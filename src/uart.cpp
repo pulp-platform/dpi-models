@@ -24,14 +24,20 @@
 #include "dpi/models.hpp"
 
 
+
 void dpi_uart_edge(void *handle, int64_t timestamp, int data)
 {
   Uart_itf *itf = static_cast<Uart_itf *>((Dpi_itf *)handle);
-  itf->edge(timestamp, data);
+  itf->tx_edge(timestamp, data);
 }
 
 void *dpi_uart_bind(void *comp_handle, const char *name, int handle)
 {
   Dpi_model *model = (Dpi_model *)comp_handle;
   return model->bind_itf(name, (void *)(long)handle);
+}
+
+void Uart_itf::rx_edge(int data)
+{
+  dpi_uart_rx_edge((int)(long)sv_handle, data);
 }

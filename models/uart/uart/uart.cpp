@@ -27,7 +27,7 @@ class Uart_tb_uart_itf : public Uart_itf
 {
 public:
   Uart_tb_uart_itf(Uart_tb *top) : top(top) {}
-  void edge(int64_t timestamp, int data);
+  void tx_edge(int64_t timestamp, int data);
 
 private:
     Uart_tb *top;
@@ -38,7 +38,7 @@ class Uart_tb : public Dpi_model
 public:
   Uart_tb(js::config *config, void *handle);
 
-  void edge(int64_t timestamp, int tx);
+  void tx_edge(int64_t timestamp, int tx);
   void tx_sampling();
 
 
@@ -90,9 +90,9 @@ void Uart_tb::tx_sampling()
   }
 }
 
-void Uart_tb::edge(int64_t timestamp, int tx)
+void Uart_tb::tx_edge(int64_t timestamp, int tx)
 {
-  //if (loopback) uart->set_port_value(UART_ITF_RX, tx);
+  if (loopback) uart->rx_edge(tx);
 
   current_tx = tx;
   
@@ -115,9 +115,9 @@ void Uart_tb::edge(int64_t timestamp, int tx)
   }
 }
 
-void Uart_tb_uart_itf::edge(int64_t timestamp, int data)
+void Uart_tb_uart_itf::tx_edge(int64_t timestamp, int data)
 {
-  top->edge(timestamp, data);
+  top->tx_edge(timestamp, data);
 }
 
 extern "C" Dpi_model *dpi_model_new(js::config *config, void *handle)

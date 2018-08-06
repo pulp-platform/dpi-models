@@ -62,7 +62,8 @@ class Jtag_itf : public Dpi_itf
 class Uart_itf : public Dpi_itf
 {
   public:
-    virtual void edge(int64_t timestamp, int data) {}
+    virtual void tx_edge(int64_t timestamp, int data) {}
+    void rx_edge(int data);
 };
 
 

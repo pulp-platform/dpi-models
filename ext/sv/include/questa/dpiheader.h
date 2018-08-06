@@ -177,6 +177,11 @@ dpi_uart_edge(
     int64_t timestamp,
     int data);
 
+DPI_LINK_DECL void
+dpi_uart_rx_edge(
+    int handle,
+    int data);
+
 
 DPI_LINK_DECL void
 dpi_print(

@@ -210,6 +210,9 @@ int dpi_driver_get_comp_nb_itf(void *comp_handle, int index)
 void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
   const char **itf_name, const char **itf_type, int *itf_id, int *itf_sub_id)
 {
+  *itf_type = (const char *)"UNKNOWN";
+  *itf_name = (const char *)"UNKNOWN";
+
   Dpi_comp *comp = &dpi_comps[index];
   Dpi_comp_Binding *binding = comp->bindings[itf_index];
   const char *chip_port_name = binding->chip_port.c_str();

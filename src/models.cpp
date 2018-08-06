@@ -128,6 +128,8 @@ void Dpi_itf::bind(void *handle)
 
 void *Dpi_model::bind_itf(std::string name, void *handle)
 {
+  if (itfs.find(name) == itfs.end())
+    return NULL;
   itfs[name]->bind(handle);
   return (void *)itfs[name];
 }
