@@ -89,6 +89,7 @@ public:
   void wait_ps(int64_t ps);
   void wait_event();
   void raise_event();
+  void raise_event_from_ext();
   virtual void start() {};
 
 protected:

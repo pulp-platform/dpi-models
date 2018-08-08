@@ -86,7 +86,7 @@ void *dpi_model_load(void *config, void *handle);
 int dpi_model_start(void *handle);
 
 
-int dpi_start_task(void *arg1, void *arg2);
+int dpi_start_task(int id);
 
 
 

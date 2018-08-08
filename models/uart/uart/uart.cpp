@@ -41,9 +41,16 @@ public:
   void tx_edge(int64_t timestamp, int tx);
   void tx_sampling();
 
+  void start();
 
 private:
 
+  void dpi_task();
+  static void dpi_uart_task_stub(Uart_tb *);
+  void start_tx_sampling(int baudrate);
+  void stop_tx_sampling();
+
+  int period;
   bool wait_start = true;
   bool wait_stop = false;
   int current_tx;
@@ -56,6 +63,17 @@ private:
 
   Uart_itf *uart;
 };
+
+void Uart_tb::start()
+{
+  period = 0;
+  create_task((void *)&Uart_tb::dpi_uart_task_stub, this);
+}
+
+void Uart_tb::dpi_uart_task_stub(Uart_tb *_this)
+{
+  _this->dpi_task();
+}
 
 Uart_tb::Uart_tb(js::config *config, void *handle) : Dpi_model(config, handle)
 {
@@ -78,15 +96,32 @@ Uart_tb::Uart_tb(js::config *config, void *handle) : Dpi_model(config, handle)
 
 void Uart_tb::tx_sampling()
 {
-  byte = (byte >> 1) | (current_tx << 7);
-  nb_bits++;
-  if (nb_bits == 8) {
-    print("Sampled TX byte (value: 0x%x)", byte);
-    if (stdout) printf("%c", byte);
-    if (tx_file) {
-      fwrite((void *)&byte, 1, 1, tx_file);
+  print("Sampling bit (value: %d)", current_tx);
+
+  if (wait_stop)
+  {
+    if (current_tx == 1)
+    {
+      print("Received stop bit");
+      wait_start = true;
+      wait_stop = false;
+      this->stop_tx_sampling();
     }
-    wait_stop = true;
+  }
+  else
+  {
+    print("Received data bit (data: %d)", current_tx);
+    byte = (byte >> 1) | (current_tx << 7);
+    nb_bits++;
+    if (nb_bits == 8) {
+      print("Sampled TX byte (value: 0x%x)", byte);
+      if (stdout) printf("%c", byte);
+      if (tx_file) {
+        fwrite((void *)&byte, 1, 1, tx_file);
+      }
+      print("Waiting for stop bit");
+      wait_stop = true;
+    }
   }
 }
 
@@ -98,22 +133,43 @@ void Uart_tb::tx_edge(int64_t timestamp, int tx)
   
   if (wait_start && tx == 0)
   {
-   // uart->start_tx_sampling(baudrate);
+    print("Received start bit");
+    this->start_tx_sampling(baudrate);
     wait_start = false;
     nb_bits = 0;
   }
-  else if (wait_stop && tx == 1)
+}
+
+void Uart_tb::start_tx_sampling(int baudrate)
+{
+  period = 1000000000000/baudrate;
+  this->raise_event();
+}
+
+void Uart_tb::stop_tx_sampling()
+{
+  period = 0;
+}
+
+void Uart_tb::dpi_task()
+{
+  while(1)
   {
-    wait_start = true;
-    wait_stop = false;
-  }
-  else
-  {
-#ifndef USE_DPI
-    tx_sampling();
-#endif
+    while(period == 0)
+    { 
+      this->wait_event();
+    }
+
+    wait_ps(period/2);
+
+    while(period != 0)
+    {
+      this->wait_ps(period);
+      this->tx_sampling();
+    }
   }
 }
+
 
 void Uart_tb_uart_itf::tx_edge(int64_t timestamp, int data)
 {

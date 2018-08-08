@@ -121,7 +121,7 @@ void Proxy::jtag_buff_flush()
   pthread_mutex_lock(&mutex);
   while(has_req || jtag_has_buff) pthread_cond_wait(&cond, &mutex);
   jtag_has_buff = true;
-  raise_event();
+  raise_event_from_ext();
   while(jtag_has_buff) pthread_cond_wait(&cond, &mutex);
   pthread_mutex_unlock(&mutex);
   jtag_buff_current = 0;
@@ -136,7 +136,7 @@ void Proxy::reset_req(int value)
   has_req = true;
   reset_set = true;
   reset_value = value;
-  raise_event();
+  raise_event_from_ext();
   while(reset_set) pthread_cond_wait(&cond, &mutex);
   pthread_mutex_unlock(&mutex);
 }

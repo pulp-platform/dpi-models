@@ -21,12 +21,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <vector>
 
 #include <json.hpp>
 #include <dlfcn.h>
 
 #include "dpi/models.hpp"
 
+static std::vector<void *> tasks_cb;
+static std::vector<void *> tasks_arg;
 
 static void dpi_fatal_stub(void *handle, const char *format, ...)
 {
@@ -87,7 +90,16 @@ void Dpi_model::print(const char *format, ...)
 
 void Dpi_model::create_task(void *arg1, void *arg2)
 {
-  dpi_create_task(handle, arg1, arg2);
+  int task_id = tasks_cb.size();
+  tasks_cb.push_back(arg1);
+  tasks_arg.push_back(arg2);
+  dpi_create_task(handle, task_id);
+}
+
+int dpi_start_task(int id)
+{
+  ((void (*)(void *))tasks_cb[id])(tasks_arg[id]);
+  return 0;
 }
 
 Dpi_model::Dpi_model(js::config *config, void *handle) : config(config), handle(handle)
@@ -118,6 +130,14 @@ void Dpi_model::raise_event()
   // Dirty hack to not call system verilog task from pthread on RTL platform
   if (handle)
     dpi_raise_event(handle);
+}
+
+void Dpi_model::raise_event_from_ext()
+{
+  // TODO
+  // Dirty hack to not call system verilog task from pthread on RTL platform
+  if (handle)
+    dpi_raise_event_from_ext(handle);
 }
 
 

@@ -307,9 +307,3 @@ int dpi_model_start(void *handle)
   return 0;
 }
 
-
-int dpi_start_task(void *arg1, void *arg2)
-{
-  ((void (*)(void *))arg1)(arg2);
-  return 0;
-}
