@@ -106,6 +106,13 @@ dpi_uart_bind(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_cpi_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_model_load(
     void* comp_config,
     void* handle);
@@ -178,6 +185,14 @@ dpi_uart_edge(
 DPI_LINK_DECL void
 dpi_uart_rx_edge(
     int handle,
+    int data);
+
+DPI_LINK_DECL void
+dpi_cpi_edge(
+    int handle,
+    int pclk,
+    int href,
+    int vsync,
     int data);
 
 

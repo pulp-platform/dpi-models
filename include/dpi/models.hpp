@@ -68,6 +68,15 @@ class Uart_itf : public Dpi_itf
 
 
 
+class Cpi_itf : public Dpi_itf
+{
+  public:
+    virtual void edge(int64_t timestamp, int pclk, int hsync, int vref, int data) {}
+    void edge(int pclk, int hsync, int vref, int data);
+};
+
+
+
 
 class Ctrl_itf : public Dpi_itf
 {

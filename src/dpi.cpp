@@ -256,6 +256,21 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
       *itf_sub_id = 0;
     }
   }
+  else if (strncmp(chip_port_name, "cpi", 3) == 0)
+  {
+    *itf_type = (const char *)"CPI";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 3)
+    {
+      *itf_id = atoi(&chip_port_name[3]);
+      *itf_sub_id = 0;
+    }
+    else
+    {
+      *itf_id = 0;
+      *itf_sub_id = 0;
+    }
+  }
   else if (strncmp(chip_port_name, "ctrl", 4) == 0)
   {
     *itf_type = (const char *)"CTRL";
