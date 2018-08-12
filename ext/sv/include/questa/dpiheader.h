@@ -152,10 +152,21 @@ int
 dpi_start_task(
     int id);
 
+DPI_LINK_DECL DPI_DLLESPEC
+void
+dpi_exec_periodic_handler(
+    int id);
+
 DPI_LINK_DECL int
 dpi_create_task(
     void* handle,
     int id);
+
+DPI_LINK_DECL int
+dpi_create_periodic_handler(
+    void* handle,
+    int id,
+    int64_t period);
 
 DPI_LINK_DECL void
 dpi_ctrl_reset_edge(

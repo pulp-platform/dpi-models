@@ -147,7 +147,7 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
 void Camera::start()
 {
   if (this->stream)
-    create_task((void *)&Camera::dpi_task_stub, this);
+    create_periodic_handler(this->period/2, (void *)&Camera::dpi_task_stub, this);
 
   this->pclk_value = 0;
   this->state = STATE_INIT;
@@ -156,7 +156,7 @@ void Camera::start()
 
 void Camera::dpi_task_stub(Camera *_this)
 {
-  _this->dpi_task();
+  _this->clock_gen();
 }
 
 void Camera::clock_gen()

@@ -94,6 +94,7 @@ public:
   void *bind_itf(std::string name, void *handle);
   void create_itf(std::string name, Dpi_itf *itf);
   void create_task(void *arg1, void *arg2);
+  void create_periodic_handler(int64_t period, void *arg1, void *arg2);
   void wait(int64_t ns);
   void wait_ps(int64_t ps);
   void wait_event();

@@ -30,6 +30,8 @@
 
 static std::vector<void *> tasks_cb;
 static std::vector<void *> tasks_arg;
+static std::vector<void *> handlers_cb;
+static std::vector<void *> handlers_arg;
 
 static void dpi_fatal_stub(void *handle, const char *format, ...)
 {
@@ -96,10 +98,23 @@ void Dpi_model::create_task(void *arg1, void *arg2)
   dpi_create_task(handle, task_id);
 }
 
+void Dpi_model::create_periodic_handler(int64_t period, void *arg1, void *arg2)
+{
+  int handler_id = handlers_cb.size();
+  handlers_cb.push_back(arg1);
+  handlers_arg.push_back(arg2);
+  dpi_create_periodic_handler(handle, handler_id, period);
+}
+
 int dpi_start_task(int id)
 {
   ((void (*)(void *))tasks_cb[id])(tasks_arg[id]);
   return 0;
+}
+
+void dpi_exec_periodic_handler(int id)
+{
+  ((void (*)(void *))handlers_cb[id])(handlers_arg[id]);
 }
 
 Dpi_model::Dpi_model(js::config *config, void *handle) : config(config), handle(handle)

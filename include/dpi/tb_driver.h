@@ -88,6 +88,8 @@ int dpi_model_start(void *handle);
 
 int dpi_start_task(int id);
 
+void dpi_exec_periodic_handler(int id);
+
 
 
 
