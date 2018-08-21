@@ -93,6 +93,10 @@ private:
   int bytesel;
   int framesel;
 
+  int vsync;
+  int href;
+  int data;
+
   Camera_stream *stream;
 };
 
@@ -119,8 +123,8 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
   InitializeMagick(NULL);
 #endif
 
-  frequency = 1000000;
-  period = 1000000000 / frequency;
+  frequency = 10000000;
+  period = 1000000000000 / frequency;
 
   cpi = new Cpi_itf();
   create_itf("cpi", static_cast<Cpi_itf *>(cpi));
@@ -152,6 +156,9 @@ void Camera::start()
   this->pclk_value = 0;
   this->state = STATE_INIT;
 
+  this->vsync = 0;
+  this->href = 0;
+  this->data = 0;
 }
 
 void Camera::dpi_task_stub(Camera *_this)
@@ -161,10 +168,6 @@ void Camera::dpi_task_stub(Camera *_this)
 
 void Camera::clock_gen()
 {
-  int vsync = 0;
-  int href = 0;
-  int data = 0;
-
   this->pclk_value ^= 1;
 
   if (this->pclk_value)
@@ -181,12 +184,13 @@ void Camera::clock_gen()
 
       case STATE_SOF:
         this->print("State SOF (cnt: %d, targetcnt: %d)\n", this->cnt, this->targetcnt);
-        vsync = 1;
+        this->vsync = 1;
         this->cnt++;
         if (this->cnt == this->targetcnt) {
           this->cnt = 0;
           this->targetcnt = 17*TLINE;
           this->state = STATE_WAIT_SOF;
+          this->vsync = 0;
         }
         break;
 
@@ -201,7 +205,7 @@ void Camera::clock_gen()
         break;
 
       case STATE_SEND_LINE: {
-        href = 1;
+        this->href = 1;
 
         if (this->color_mode == COLOR_MODE_GRAY)
         {
@@ -233,8 +237,8 @@ void Camera::clock_gen()
           //}
 
           // Coded with RGB565
-          if (bytesel) data = (((pixel >> 10) & 0x7) << 5) | (((pixel >> 3) & 0x1f) << 0);
-          else         data = (((pixel >> 19) & 0x1f) << 3) | (((pixel >> 13) & 0x7) << 0);
+          if (bytesel) this->data = (((pixel >> 10) & 0x7) << 5) | (((pixel >> 3) & 0x1f) << 0);
+          else         this->data = (((pixel >> 19) & 0x1f) << 3) | (((pixel >> 13) & 0x7) << 0);
         }
 
         if (this->bytesel == 1) {
@@ -262,6 +266,8 @@ void Camera::clock_gen()
 
       case STATE_WAIT_EOF:
         this->print("State WAIT_EOF (cnt: %d, targetcnt: %d)\n", this->cnt, this->targetcnt);
+        this->href = 0;
+        this->data = 0;
         this->cnt++;
         if (this->cnt == this->targetcnt) {
           this->state = STATE_SOF;
@@ -274,7 +280,7 @@ void Camera::clock_gen()
     }
   }
 
-  this->cpi->edge(this->pclk_value, href, vsync, data);
+  this->cpi->edge(this->pclk_value, this->href, this->vsync, this->data);
 }
 
 void Camera::dpi_task()
