@@ -134,18 +134,30 @@ void
 dpi_qspim_cs_edge(
     void* handle,
     int64_t timestamp,
-    svLogic csn);
+    int csn);
 
 DPI_LINK_DECL DPI_DLLESPEC
 void
 dpi_qspim_sck_edge(
     void* handle,
     int64_t timestamp,
-    svLogic sck,
-    svLogic data_0,
-    svLogic data_1,
-    svLogic data_2,
-    svLogic data_3);
+    int sck,
+    int data_0,
+    int data_1,
+    int data_2,
+    int data_3,
+    int mask);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void
+dpi_qspim_edge(
+    void* handle,
+    int64_t timestamp,
+    int data_0,
+    int data_1,
+    int data_2,
+    int data_3,
+    int mask);
 
 DPI_LINK_DECL DPI_DLLESPEC
 int
@@ -218,7 +230,8 @@ dpi_qspim_set_data(
     int data_0,
     int data_1,
     int data_2,
-    int data_3);
+    int data_3,
+    int mask);
 
 DPI_LINK_DECL int
 dpi_raise_event(

@@ -223,7 +223,7 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
     if (strlen(chip_port_name) > 4)
     {
       *itf_id = atoi(&chip_port_name[4]);
-      *itf_sub_id = atoi(&chip_port_name[6]);
+      *itf_sub_id = atoi(&chip_port_name[8]);
     }
   }
   else if (strncmp(chip_port_name, "jtag", 4) == 0)

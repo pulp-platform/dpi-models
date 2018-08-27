@@ -45,7 +45,9 @@ class Spim_verif_qspi_itf : public Qspi_itf
 {
 public:
   Spim_verif_qspi_itf(Spim_verif *top) : top(top) {}
-  void sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3);
+  void sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3, int mask);
+  void edge(int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask);
+  void cs_edge(int64_t timestamp, int cs);
 
 private:
     Spim_verif *top;
@@ -60,7 +62,11 @@ public:
 
 protected:
 
-  void sck_edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int sck);
+  void sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
+  void edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
+  void cs_edge(int64_t timestamp, int cs);
+  void handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
+  void handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask);
 
 
 private:
@@ -79,6 +85,7 @@ private:
   uint32_t current_cmd = 0;
   int prev_sck = 0;
   int cmd_count = 0;
+  int dummy_cycles = 0;
   int current_addr;
   int current_size;
   unsigned char *data;
@@ -93,11 +100,11 @@ private:
 Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, handle)
 {
   int mem_size = config->get("mem_size")->get_int();
-  verbose = config->get("verbose")->get_bool();
+  verbose = true; //config->get("verbose")->get_bool();
   print("Creating SPIM VERIF model (mem_size: 0x%x)", mem_size);
   data = new unsigned char[mem_size];
   qspi0 = new Spim_verif_qspi_itf(this);
-  create_itf("spi", static_cast<Dpi_itf *>(qspi0));
+  create_itf("input", static_cast<Dpi_itf *>(qspi0));
 }
 
 void Spim_verif::handle_read(uint32_t cmd)
@@ -110,6 +117,7 @@ void Spim_verif::handle_read(uint32_t cmd)
   current_addr = 0;
   current_size = size;
   nb_bits = 0;
+  dummy_cycles = 1;
 }
 
 void Spim_verif::handle_write(uint32_t cmd)
@@ -126,6 +134,12 @@ void Spim_verif::handle_write(uint32_t cmd)
 
 void Spim_verif::exec_read()
 {
+  if (dummy_cycles)
+  {
+    dummy_cycles--;
+    return;
+  }
+
   if (nb_bits == 0)
   {
     byte = data[current_addr];
@@ -182,38 +196,71 @@ void Spim_verif::handle_command(uint32_t cmd)
 
 }
 
-void Spim_verif_qspi_itf::sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3)
+void Spim_verif_qspi_itf::cs_edge(int64_t timestamp, int cs)
 {
-  top->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3);
+  top->cs_edge(timestamp, cs);
 }
 
-void Spim_verif::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3)
+void Spim_verif_qspi_itf::sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3, int mask)
 {
-  if (verbose) print("SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d)", timestamp, sck, sdio0, sdio1, sdio2, sdio3);
+  top->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3, mask);
+}
+
+void Spim_verif_qspi_itf::edge(int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask)
+{
+  top->edge(timestamp, data_0, data_1, data_2, data_3, mask);
+}
+
+void Spim_verif::cs_edge(int64_t timestamp, int cs)
+{
+  if (verbose) print("CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
+}
+
+void Spim_verif::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
+{
+  if (verbose) print("Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+
+  handle_clk_high(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+  handle_clk_low(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+}
+
+void Spim_verif::handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
+{
+  if (state == STATE_GET_CMD)
+  {
+    current_cmd = (current_cmd << 1) | sdio0;
+    cmd_count++;
+    if (cmd_count == 32)
+    {
+      cmd_count = 0;
+      handle_command(current_cmd);
+    }
+  }
+  else if (state == STATE_WRITE_CMD)
+  {
+    exec_write(sdio0);
+  }
+}
+
+void Spim_verif::handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
+{
+  if (state == STATE_READ_CMD)
+  {
+    exec_read();
+  }
+}
+
+void Spim_verif::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
+{
+  if (verbose) print("SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
 
   if (prev_sck == 1 && !sck)
   {
-    if (state == STATE_READ_CMD)
-    {
-      exec_read();
-    }
+    handle_clk_low(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
   }
   else if (prev_sck == 0 && sck)
   {
-    if (state == STATE_GET_CMD)
-    {
-      current_cmd = (current_cmd << 1) | sdio0;
-      cmd_count++;
-      if (cmd_count == 32)
-      {
-        cmd_count = 0;
-        handle_command(current_cmd);
-      }
-    }
-    else if (state == STATE_WRITE_CMD)
-    {
-      exec_write(sdio0);
-    }
+    handle_clk_high(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
   }
   prev_sck = sck;
 }

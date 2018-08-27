@@ -23,14 +23,24 @@
 
 #include "dpi/models.hpp"
 
-void dpi_qspim_cs_edge(void *handle, int64_t timestamp, svLogic scn)
-{
-}
-
-void dpi_qspim_sck_edge(void *handle, int64_t timestamp, svLogic sck, svLogic data_0, svLogic data_1, svLogic data_2, svLogic data_3)
+void dpi_qspim_cs_edge(void *handle, int64_t timestamp, int cs)
 {
   Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
-  itf->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3);
+  itf->cs_edge(timestamp, cs);
+}
+
+void dpi_qspim_sck_edge(void *handle, int64_t timestamp, svLogic sck, svLogic data_0, svLogic data_1, svLogic data_2, svLogic data_3, int mask)
+{
+  Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
+  itf->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3, mask);
+}
+
+
+
+void dpi_qspim_edge(void *handle, int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask)
+{
+  Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
+  itf->edge(timestamp, data_0, data_1, data_2, data_3, mask);
 }
 
 void *dpi_qspim_bind(void *comp_handle, const char *name, int handle)
@@ -41,10 +51,10 @@ void *dpi_qspim_bind(void *comp_handle, const char *name, int handle)
 
 void Qspi_itf::set_data(int data_0)
 {
-  dpi_qspim_set_data((int)(long)sv_handle, 0, data_0, 0, 0);
+  dpi_qspim_set_data((int)(long)sv_handle, 0, data_0, 0, 0, 0x2);
 }
 
-void Qspi_itf::set_qpi_data(int data_0, int data_1, int data_2, int data_3)
+void Qspi_itf::set_qpi_data(int data_0, int data_1, int data_2, int data_3, int mask)
 {
-  dpi_qspim_set_data((int)(long)sv_handle, data_0, data_1, data_2, data_3);
+  dpi_qspim_set_data((int)(long)sv_handle, data_0, data_1, data_2, data_3, 0xf);
 }

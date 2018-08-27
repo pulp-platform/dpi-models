@@ -44,9 +44,11 @@ class Dpi_itf
 class Qspi_itf : public Dpi_itf
 {
   public:
-    virtual void sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3) {};
+    virtual void sck_edge(int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3, int mask) {};
+    virtual void edge(int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask) {};
+    virtual void cs_edge(int64_t timestamp, int cs) {};
     void set_data(int data_0);
-    void set_qpi_data(int data_0, int data_1, int data_2, int data_3);
+    void set_qpi_data(int data_0, int data_1, int data_2, int data_3, int mask);
 };
 
 
