@@ -105,8 +105,6 @@ void dpi_uart_edge(void *handle, int64_t timestamp, int data);
 
 void dpi_qspim_cs_edge(void *handle, int64_t timestamp, int active);
 
-void dpi_qspim_sck_edge(void *handle, int64_t timestamp, int sck, int data_0, int data_1, int data_2, int data_3, int mask);
-
 void dpi_qspim_edge(void *handle, int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask);
 
 

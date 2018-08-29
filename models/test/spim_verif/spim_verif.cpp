@@ -86,6 +86,7 @@ private:
   int prev_sck = 0;
   int cmd_count = 0;
   int dummy_cycles = 0;
+  bool wait_cs;
   int current_addr;
   int current_size;
   unsigned char *data;
@@ -105,6 +106,7 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
   data = new unsigned char[mem_size];
   qspi0 = new Spim_verif_qspi_itf(this);
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
+  wait_cs = false;
 }
 
 void Spim_verif::handle_read(uint32_t cmd)
@@ -117,7 +119,8 @@ void Spim_verif::handle_read(uint32_t cmd)
   current_addr = 0;
   current_size = size;
   nb_bits = 0;
-  dummy_cycles = 1;
+  wait_cs = true;
+  //dummy_cycles = 1;
 }
 
 void Spim_verif::handle_write(uint32_t cmd)
@@ -134,6 +137,9 @@ void Spim_verif::handle_write(uint32_t cmd)
 
 void Spim_verif::exec_read()
 {
+  if (wait_cs)
+    return;
+
   if (dummy_cycles)
   {
     dummy_cycles--;
@@ -214,6 +220,16 @@ void Spim_verif_qspi_itf::edge(int64_t timestamp, int data_0, int data_1, int da
 void Spim_verif::cs_edge(int64_t timestamp, int cs)
 {
   if (verbose) print("CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
+  if (cs == 1)
+    this->wait_cs = false;
+
+  if (cs == 0)
+  {
+    if (state == STATE_READ_CMD)
+    {
+      exec_read();
+    }
+  }
 }
 
 void Spim_verif::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
