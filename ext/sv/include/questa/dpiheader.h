@@ -228,6 +228,11 @@ dpi_print(
 DPI_LINK_DECL void
 dpi_qspim_set_data(
     int handle,
+    int data);
+
+DPI_LINK_DECL void
+dpi_qspim_set_qpi_data(
+    int handle,
     int data_0,
     int data_1,
     int data_2,

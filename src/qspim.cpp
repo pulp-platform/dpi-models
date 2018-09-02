@@ -51,10 +51,10 @@ void *dpi_qspim_bind(void *comp_handle, const char *name, int handle)
 
 void Qspi_itf::set_data(int data_0)
 {
-  dpi_qspim_set_data((int)(long)sv_handle, 0, data_0, 0, 0, 0x2);
+  dpi_qspim_set_data((int)(long)sv_handle, data_0);
 }
 
 void Qspi_itf::set_qpi_data(int data_0, int data_1, int data_2, int data_3, int mask)
 {
-  dpi_qspim_set_data((int)(long)sv_handle, data_0, data_1, data_2, data_3, 0xf);
+  dpi_qspim_set_qpi_data((int)(long)sv_handle, data_0, data_1, data_2, data_3, 0xf);
 }
