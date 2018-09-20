@@ -138,7 +138,9 @@ void Proxy::reset_req(int value)
   has_req = true;
   reset_set = true;
   reset_value = value;
+  pthread_mutex_unlock(&mutex);
   raise_event_from_ext();
+  pthread_mutex_lock(&mutex);
   while(reset_set) pthread_cond_wait(&cond, &mutex);
   pthread_mutex_unlock(&mutex);
 }
