@@ -21,12 +21,14 @@
 #include "dpi/models.hpp"
 #include <stdint.h>
 
-#define SPIM_VERIF_CMD_BIT        24
+#define SPIM_VERIF_CMD_BIT        56
 #define SPIM_VERIF_CMD_WIDTH      8
-#define SPIM_VERIF_CMD_INFO_BIT   0
+#define SPIM_VERIF_CMD_INFO_BIT   32
 #define SPIM_VERIF_CMD_INFO_WIDTH 24
+#define SPIM_VERIF_CMD_ADDR_BIT   0
+#define SPIM_VERIF_CMD_ADDR_WIDTH 32
 
-#define SPIM_VERIF_FIELD_GET(value,bit,width) (((value) >> (bit)) & ((1<<(width))-1))
+#define SPIM_VERIF_FIELD_GET(value,bit,width) (((value) >> (bit)) & ((1UL<<(width))-1))
 
 typedef enum {
   STATE_GET_CMD,
@@ -75,17 +77,17 @@ private:
 
   Spim_verif_qspi_itf *qspi0;
 
-  void handle_read(uint32_t cmd);
-  void handle_write(uint32_t cmd);
-  void handle_full_duplex(uint32_t cmd);
+  void handle_read(uint64_t cmd);
+  void handle_write(uint64_t cmd);
+  void handle_full_duplex(uint64_t cmd);
 
   void exec_write(int data);
   void exec_read();
 
-  void handle_command(uint32_t cmd);
+  void handle_command(uint64_t cmd);
 
   Spim_verif_state_e state = STATE_GET_CMD;
-  uint32_t current_cmd = 0;
+  uint64_t current_cmd = 0;
   int prev_sck = 0;
   int cmd_count = 0;
   int dummy_cycles = 0;
@@ -100,6 +102,7 @@ private:
   uint32_t byte;
   bool verbose;
   unsigned int pending_write;
+  int current_cs;
 };
 
 
@@ -114,43 +117,44 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
   qspi0 = new Spim_verif_qspi_itf(this);
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
   wait_cs = false;
+  this->current_cs = 1;
 }
 
-void Spim_verif::handle_read(uint32_t cmd)
+void Spim_verif::handle_read(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
+  current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
 
-  if (verbose) print("Handling read command (size: 0x%x)", size);
+  if (verbose) print("Handling read command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
   state = STATE_READ_CMD;
-  current_addr = 0;
   current_size = size;
   nb_bits = 0;
   wait_cs = true;
   //dummy_cycles = 1;
 }
 
-void Spim_verif::handle_write(uint32_t cmd)
+void Spim_verif::handle_write(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
+  current_write_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
 
-  if (verbose) print("Handling write command (size: 0x%x)", size);
+  if (verbose) print("Handling write command (size: 0x%x, addr: 0x%x)", size, current_write_addr);
 
   state = STATE_WRITE_CMD;
-  current_write_addr = 0;
   current_write_size = size;
   nb_write_bits = 0;
 }
 
-void Spim_verif::handle_full_duplex(uint32_t cmd)
+void Spim_verif::handle_full_duplex(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
+  current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
 
-  if (verbose) print("Handling full duplex command (size: 0x%x)", size);
+  if (verbose) print("Handling full duplex command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
   state = STATE_FULL_DUPLEX_CMD;
-  current_addr = 0;
-  current_write_addr = 0;
+  current_write_addr = current_addr;
   current_size = size;
   current_write_size = size;
   nb_bits = 0;
@@ -219,7 +223,7 @@ void Spim_verif::exec_write(int val)
   }
 }
 
-void Spim_verif::handle_command(uint32_t cmd)
+void Spim_verif::handle_command(uint64_t cmd)
 {
   if (verbose) print("Handling command %x", current_cmd);
 
@@ -251,6 +255,10 @@ void Spim_verif_qspi_itf::edge(int64_t timestamp, int data_0, int data_1, int da
 
 void Spim_verif::cs_edge(int64_t timestamp, int cs)
 {
+  if (this->current_cs == cs) return;
+
+  this->current_cs = cs;
+
   if (verbose) print("CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
   if (cs == 1) {
     this->wait_cs = false;
@@ -284,7 +292,7 @@ void Spim_verif::handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sd
     current_cmd = (current_cmd << 1) | sdio0;
     if (verbose) print("Received command bit (count: %d, pending: %x, bit: %d)", cmd_count, current_cmd, sdio0);
     cmd_count++;
-    if (cmd_count == 32)
+    if (cmd_count == 64)
     {
       cmd_count = 0;
       handle_command(current_cmd);
