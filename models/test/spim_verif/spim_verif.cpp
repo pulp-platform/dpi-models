@@ -83,6 +83,8 @@ private:
 
   void exec_write(int data);
   void exec_read();
+  void exec_dump_single(int sdio0);
+  void exec_dump_qpi(int sdio0, int sdio1, int sdio2, int sdio3);
 
   void handle_command(uint64_t cmd);
 
@@ -103,6 +105,10 @@ private:
   bool verbose;
   unsigned int pending_write;
   int current_cs;
+  FILE *tx_file;
+  int tx_dump_bits;
+  bool tx_dump_qpi;
+  int tx_dump_byte;
 };
 
 
@@ -118,6 +124,17 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
   wait_cs = false;
   this->current_cs = 1;
+  this->tx_file = NULL;
+
+  js::config *tx_file_config = config->get("tx_file");
+  if (tx_file_config != NULL)
+  {
+    js::config *path_config = tx_file_config->get("path");
+    js::config *qpi_config = tx_file_config->get("qpi");
+    this->tx_dump_bits = 0;
+    this->tx_file = fopen(path_config->get_str().c_str(), "wb");
+    this->tx_dump_qpi = qpi_config != NULL && qpi_config->get_bool();
+  }
 }
 
 void Spim_verif::handle_read(uint64_t cmd)
@@ -282,10 +299,42 @@ void Spim_verif::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sd
   handle_clk_low(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
 }
 
+void Spim_verif::exec_dump_single(int sdio0)
+{
+  this->tx_dump_byte = (this->tx_dump_byte << 1)| sdio0;
+  this->tx_dump_bits++;
+  if (this->tx_dump_bits == 8)
+  {
+    this->tx_dump_bits = 0;
+    fwrite((void *)&this->tx_dump_byte, 1, 1, this->tx_file);
+  }
+}
+
+void Spim_verif::exec_dump_qpi(int sdio0, int sdio1, int sdio2, int sdio3)
+{
+  this->tx_dump_byte = (this->tx_dump_byte << 4) | (sdio3 << 3) | (sdio2 << 2) | (sdio1 << 1) | sdio0;
+  this->tx_dump_bits += 4;
+  if (this->tx_dump_bits == 8)
+  {
+    this->tx_dump_bits = 0;
+    fwrite((void *)&this->tx_dump_byte, 1, 1, this->tx_file);
+  }
+}
+
 void Spim_verif::handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
   if (wait_cs)
     return;
+
+  if (this->tx_file != NULL)
+  {
+    if (this->tx_dump_qpi)
+      exec_dump_qpi(sdio0, sdio1, sdio2, sdio3);
+    else
+      exec_dump_single(sdio0);
+    // TODO properly destroy the model and close the logfile instead of flushing
+    fflush(NULL);
+  }
 
   if (state == STATE_GET_CMD)
   {
