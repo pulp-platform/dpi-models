@@ -183,7 +183,11 @@ void Proxy::proxy_loop(int sock)
       {
         for (int i=0; i<req.jtag.bits; i++)
         {
-          value |= (jtag_buff[i].tdo << (i % 8));
+          // Set TDO to 0 in case the platform reported another value than 0
+          // or 1 (e.g. X)
+          unsigned int tdo = jtag_buff[i].tdo;
+          tdo = tdo <= 1 ? tdo : 0;
+          value |= (tdo << (i % 8));
           if ((i % 8) == 7 || i == req.jtag.bits - 1)
           {
             *out_ptr = value;
