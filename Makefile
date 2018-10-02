@@ -18,8 +18,9 @@ endif
 PERIPH_CFLAGS += $(CFLAGS) $(DPI_CFLAGS)
 PERIPH_LDFLAGS += $(LDFLAGS)  -Wl,-export-dynamic -ldl -rdynamic
 
-DPI_SRCS = src/dpi.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp src/uart.cpp src/cpi.cpp
-PERIPH_SRCS = src/models.cpp src/qspim.cpp src/jtag.cpp src/ctrl.cpp src/uart.cpp src/cpi.cpp
+COMMON_SRCS = src/qspim.cpp src/gpio.cpp src/jtag.cpp src/ctrl.cpp src/uart.cpp src/cpi.cpp
+DPI_SRCS = src/dpi.cpp $(COMMON_SRCS)
+PERIPH_SRCS = src/models.cpp $(COMMON_SRCS)
 
 DPI_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/dpi/%.o,$(patsubst %.c,$(BUILD_DIR)/dpi/%.o,$(DPI_SRCS)))
 PERIPH_OBJS = $(patsubst %.cpp,$(BUILD_DIR)/periph/%.o,$(patsubst %.c,$(BUILD_DIR)/periph/%.o,$(PERIPH_SRCS)))

@@ -20,13 +20,28 @@
 
 #include "dpi/models.hpp"
 #include <stdint.h>
+#include <vector>
 
 #define SPIM_VERIF_CMD_BIT        56
 #define SPIM_VERIF_CMD_WIDTH      8
+
 #define SPIM_VERIF_CMD_INFO_BIT   32
 #define SPIM_VERIF_CMD_INFO_WIDTH 24
+
 #define SPIM_VERIF_CMD_ADDR_BIT   0
 #define SPIM_VERIF_CMD_ADDR_WIDTH 32
+
+
+typedef union {
+  struct {
+    unsigned int delay:32;
+    unsigned int value:8;
+    unsigned int id:16;
+    unsigned int cmd:8;
+  };
+  uint64_t raw;
+} cmd_gpio_set_t;
+
 
 #define SPIM_VERIF_FIELD_GET(value,bit,width) (((value) >> (bit)) & ((1UL<<(width))-1))
 
@@ -40,8 +55,12 @@ typedef enum {
 typedef enum {
   SPIM_VERIF_CMD_WRITE = 1,
   SPIM_VERIF_CMD_READ = 2,
-  SPIM_VERIF_CMD_FULL_DUPLEX = 3
+  SPIM_VERIF_CMD_FULL_DUPLEX = 3,
+  SPIM_VERIF_CMD_GPIO_SET = 4
 } spim_cmd_e;
+
+
+
 
 class Spim_verif;
 
@@ -57,12 +76,42 @@ private:
     Spim_verif *top;
 };
 
+
+
+class Spim_verif_gpio_itf : public Gpio_itf
+{
+public:
+  Spim_verif_gpio_itf(Spim_verif *top) : top(top) {}
+  void edge(int64_t timestamp, int data);
+
+private:
+    Spim_verif *top;
+};
+
+
+class Spim_verif_gpio_handler
+{
+public:
+  Spim_verif_gpio_handler(Spim_verif *top, int gpio, int value);
+
+  static void gpio_handler_stub(Spim_verif_gpio_handler *);
+
+private:
+
+  Spim_verif *top;
+  int gpio;
+  int value;
+};
+
+
 class Spim_verif : public Dpi_model
 {
   friend class Spim_verif_qspi_itf;
 
 public:
   Spim_verif(js::config *config, void *handle);
+
+  void gpio_handler(int gpio, int value);
 
 protected:
 
@@ -76,10 +125,12 @@ protected:
 private:
 
   Spim_verif_qspi_itf *qspi0;
+  std::vector<Spim_verif_gpio_itf *> gpios;
 
   void handle_read(uint64_t cmd);
   void handle_write(uint64_t cmd);
   void handle_full_duplex(uint64_t cmd);
+  void handle_gpio_set(uint64_t cmd);
 
   void exec_write(int data);
   void exec_read();
@@ -112,7 +163,16 @@ private:
 };
 
 
+Spim_verif_gpio_handler::Spim_verif_gpio_handler(Spim_verif *top, int gpio, int value)
+: top(top), gpio(gpio), value(value)
+{
 
+}
+
+void Spim_verif_gpio_handler::gpio_handler_stub(Spim_verif_gpio_handler *_this)
+{
+  _this->top->gpio_handler(_this->gpio, _this->value);
+}
 
 Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, handle)
 {
@@ -122,6 +182,19 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
   data = new unsigned char[mem_size];
   qspi0 = new Spim_verif_qspi_itf(this);
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
+
+  js::config *gpios_conf = config->get("gpio");
+  if (gpios_conf != NULL)
+  {
+    for (int i; i<gpios_conf->get_size(); i++)
+    {
+      js::config *gpio_conf = gpios_conf->get_elem(i);
+      Spim_verif_gpio_itf *gpio = new Spim_verif_gpio_itf(this);
+      gpios.push_back(gpio);
+      this->create_itf(gpio_conf->get_str(), static_cast<Dpi_itf *>(gpio));
+    }
+  }
+
   wait_cs = false;
   this->current_cs = 1;
   this->tx_file = NULL;
@@ -161,6 +234,28 @@ void Spim_verif::handle_write(uint64_t cmd)
   state = STATE_WRITE_CMD;
   current_write_size = size;
   nb_write_bits = 0;
+}
+
+void Spim_verif::gpio_handler(int gpio, int value)
+{
+  if (verbose) print("Setting GPIO value (gpio: %d, value: %d)", gpio, value);
+  this->gpios[gpio]->set_data(value);
+}
+
+void Spim_verif::handle_gpio_set(uint64_t cmd_value)
+{
+  cmd_gpio_set_t cmd = { .raw=cmd_value };
+
+  if (verbose) print("Handling gpio set command (id: %d, value: %d, delay: %d)", cmd.id, cmd.value, cmd.delay, cmd.delay);
+
+  if (cmd.id >= this->gpios.size())
+  {
+    print("WARNING: trying to set invalid gpio (id: 0x%d)", cmd.id);
+    return;
+  }
+
+  Spim_verif_gpio_handler *handler = new Spim_verif_gpio_handler(this, cmd.id, cmd.value);
+  this->create_delayed_handler(((int64_t)cmd.delay)*1000, (void *)&Spim_verif_gpio_handler::gpio_handler_stub, handler);
 }
 
 void Spim_verif::handle_full_duplex(uint64_t cmd)
@@ -250,10 +345,18 @@ void Spim_verif::handle_command(uint64_t cmd)
     case SPIM_VERIF_CMD_WRITE: handle_write(cmd); break;
     case SPIM_VERIF_CMD_READ: handle_read(cmd); break;
     case SPIM_VERIF_CMD_FULL_DUPLEX: handle_full_duplex(cmd); break;
-    default: print("WARNING: received unknown command: 0x%x", cmd);
+    case SPIM_VERIF_CMD_GPIO_SET: handle_gpio_set(cmd); break;
+    default: print("WARNING: received unknown command (raw: 0x%llx, id: 0x%x)", cmd, cmd_id);
   }
 
 }
+
+
+void Spim_verif_gpio_itf::edge(int64_t timestamp, int data)
+{
+  printf("Gpio edge\n");
+}
+
 
 void Spim_verif_qspi_itf::cs_edge(int64_t timestamp, int cs)
 {

@@ -130,14 +130,21 @@ dpi_qspim_bind(
     int handle);
 
 DPI_LINK_DECL DPI_DLLESPEC
-void
+void*
+dpi_gpio_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+int
 dpi_qspim_cs_edge(
     void* handle,
     int64_t timestamp,
     int csn);
 
 DPI_LINK_DECL DPI_DLLESPEC
-void
+int
 dpi_qspim_sck_edge(
     void* handle,
     int64_t timestamp,
@@ -164,6 +171,10 @@ DPI_LINK_DECL DPI_DLLESPEC
 int
 dpi_start_task(
     int id);
+
+DPI_LINK_DECL DPI_DLLESPEC
+int64_t
+dpi_time(void *handler);
 
 DPI_LINK_DECL DPI_DLLESPEC
 void
@@ -226,6 +237,11 @@ dpi_print(
     const char* msg);
 
 DPI_LINK_DECL void
+dpi_gpio_set_data(
+    int handle,
+    int data);
+
+DPI_LINK_DECL void
 dpi_qspim_set_data(
     int handle,
     int data);
@@ -244,6 +260,10 @@ dpi_raise_event(
     void* handle);
 
 DPI_LINK_DECL int
+dpi_raise_task_event(
+    void* handle);
+
+DPI_LINK_DECL int
 dpi_raise_event_from_ext(
     void* handle);
 
@@ -255,6 +275,14 @@ dpi_wait(
 DPI_LINK_DECL int
 dpi_wait_event(
     void* handle);
+
+DPI_LINK_DECL int
+dpi_wait_task_event(
+    void* handle);
+
+DPI_LINK_DECL int
+dpi_wait_task_event_timeout(
+    void* handle, int64_t timeout);
 
 DPI_LINK_DECL int
 dpi_wait_ps(

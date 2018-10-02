@@ -23,16 +23,18 @@
 
 #include "dpi/models.hpp"
 
-void dpi_qspim_cs_edge(void *handle, int64_t timestamp, int cs)
+int dpi_qspim_cs_edge(void *handle, int64_t timestamp, int cs)
 {
   Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
   itf->cs_edge(timestamp, cs);
+  return 0;
 }
 
-void dpi_qspim_sck_edge(void *handle, int64_t timestamp, svLogic sck, svLogic data_0, svLogic data_1, svLogic data_2, svLogic data_3, int mask)
+int dpi_qspim_sck_edge(void *handle, int64_t timestamp, svLogic sck, svLogic data_0, svLogic data_1, svLogic data_2, svLogic data_3, int mask)
 {
   Qspi_itf *itf = static_cast<Qspi_itf *>((Dpi_itf *)handle);
   itf->sck_edge(timestamp, sck, data_0, data_1, data_2, data_3, mask);
+  return 0;
 }
 
 

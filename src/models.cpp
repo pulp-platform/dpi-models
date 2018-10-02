@@ -106,6 +106,32 @@ void Dpi_model::create_periodic_handler(int64_t period, void *arg1, void *arg2)
   dpi_create_periodic_handler(handle, handler_id, period);
 }
 
+void Dpi_model::create_delayed_handler(int64_t period, void *arg1, void *arg2)
+{
+
+  Dpi_handler *handler = new Dpi_handler(arg1, arg2, period + dpi_time(this->handle));
+
+  int64_t full_time = period + dpi_time(this->handle);
+
+  Dpi_handler *current = this->first_handler;
+  Dpi_handler *prev = NULL;
+
+  while (current && current->time < full_time)
+  {
+    prev = current;
+    current = current->next;
+  }
+
+  if (prev)
+    prev->next = handler;
+  else
+    this->first_handler = handler;
+
+  handler->next = current;
+
+  this->raise_task_event();
+}
+
 int dpi_start_task(int id)
 {
   ((void (*)(void *))tasks_cb[id])(tasks_arg[id]);
@@ -117,9 +143,56 @@ void dpi_exec_periodic_handler(int id)
   ((void (*)(void *))handlers_cb[id])(handlers_arg[id]);
 }
 
-Dpi_model::Dpi_model(js::config *config, void *handle) : config(config), handle(handle)
+void Dpi_model::callback_task_stub(void *__this)
 {
+  Dpi_model *_this = (Dpi_model *)__this;
+  _this->callback_task();
+}
 
+void Dpi_model::callback_task()
+{
+  while(1)
+  {
+    Dpi_handler *current = this->first_handler;
+
+    if (!current)
+    {
+      this->wait_task_event();
+    }
+    else
+    {
+      int64_t time = dpi_time(this->handle);
+
+      while (current && time >= current->time)
+      {
+        print("Executing delayed handler");
+        this->first_handler = current->next;
+
+        ((void (*)(void *))current->arg0)(current->arg1);
+
+        delete current;
+        current = this->first_handler;
+      }
+
+
+      if (this->first_handler)
+      {
+        print("Waiting for next delayed handler (time: %ld)", this->first_handler->time);
+        this->wait_task_event_timeout(this->first_handler->time - time);
+      }
+    }
+  }
+}
+
+Dpi_model::Dpi_model(js::config *config, void *handle)
+ : config(config), handle(handle), first_handler(NULL)
+{
+}
+
+void Dpi_model::start_all()
+{
+  this->start();
+  create_task((void *)&Dpi_model::callback_task_stub, this);
 }
 
 void Dpi_model::wait(int64_t ns)
@@ -135,6 +208,21 @@ void Dpi_model::wait_ps(int64_t ps)
 void Dpi_model::wait_event()
 {
   dpi_wait_event(handle);
+}
+
+void Dpi_model::wait_task_event()
+{
+  dpi_wait_task_event(handle);
+}
+
+void Dpi_model::wait_task_event_timeout(int64_t timeout)
+{
+  dpi_wait_task_event_timeout(handle, timeout);
+}
+
+void Dpi_model::raise_task_event()
+{
+  dpi_raise_task_event(handle);
 }
 
 // This function is only useful on virtual platform to avoid active polling

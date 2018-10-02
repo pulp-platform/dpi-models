@@ -281,6 +281,16 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
       *itf_sub_id = 0;
     }
   }
+  else if (strncmp(chip_port_name, "gpio", 4) == 0)
+  {
+    *itf_type = (const char *)"GPIO";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 4)
+    {
+      *itf_id = atoi(&chip_port_name[4]);
+      *itf_sub_id = 0;
+    }
+  }
 }
 
 
@@ -318,7 +328,7 @@ void *dpi_model_load(void *config, void *handle)
 int dpi_model_start(void *handle)
 {
   Dpi_model *model = (Dpi_model *)handle;
-  model->start();
+  model->start_all();
   return 0;
 }
 

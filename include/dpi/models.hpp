@@ -53,6 +53,15 @@ class Qspi_itf : public Dpi_itf
 
 
 
+class Gpio_itf : public Dpi_itf
+{
+  public:
+    virtual void edge(int64_t timestamp, int data) {}
+    void set_data(int data);
+};
+
+
+
 class Jtag_itf : public Dpi_itf
 {
   public:
@@ -88,6 +97,15 @@ class Ctrl_itf : public Dpi_itf
 
 
 
+class Dpi_handler {
+public:
+  Dpi_handler(void *arg0, void *arg1, int64_t time) : arg0(arg0), arg1(arg1), time(time) {}
+  void *arg0;
+  void *arg1;
+  int64_t time;
+  Dpi_handler *next;
+};
+
 
 class Dpi_model
 {
@@ -97,12 +115,19 @@ public:
   void create_itf(std::string name, Dpi_itf *itf);
   void create_task(void *arg1, void *arg2);
   void create_periodic_handler(int64_t period, void *arg1, void *arg2);
+  void create_delayed_handler(int64_t period, void *arg1, void *arg2);
+  static void callback_task_stub(void *__this);
+  void callback_task();
   void wait(int64_t ns);
   void wait_ps(int64_t ps);
   void wait_event();
   void raise_event();
+  void wait_task_event();
+  void wait_task_event_timeout(int64_t timeout);
+  void raise_task_event();
   void raise_event_from_ext();
   virtual void start() {};
+  void start_all();
 
 protected:
   void print(const char *format, ...);
@@ -112,6 +137,7 @@ private:
   js::config *config;
   std::map<std::string, Dpi_itf *> itfs;
   void *handle;
+  Dpi_handler *first_handler;
 };
 
 
