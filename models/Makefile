@@ -1,4 +1,6 @@
-ROOT_DPI_BUILD_DIR ?= $(CURDIR)/build
+BUILD_DIR ?= $(CURDIR)/build
+
+ROOT_DPI_BUILD_DIR ?= $(BUILD_DIR)
 
 DPI_DIRS=test/spim_verif jtag/proxy uart/uart camera
 

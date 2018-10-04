@@ -1,5 +1,5 @@
 VSIM_DETECTED_PATH=$(dir $(shell which vsim))
-BUILD_DIR=build
+BUILD_DIR ?= build
 
 CFLAGS += -std=gnu++11 -MMD -MP -O3 -g
 
