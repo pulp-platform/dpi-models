@@ -167,6 +167,14 @@ dpi_qspim_edge(
     int data_3,
     int mask);
 
+
+DPI_LINK_DECL DPI_DLLESPEC
+void
+dpi_gpio_edge(
+    void* handle,
+    int64_t timestamp,
+    int data_0);
+
 DPI_LINK_DECL DPI_DLLESPEC
 int
 dpi_start_task(
