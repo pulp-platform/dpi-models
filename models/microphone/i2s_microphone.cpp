@@ -150,7 +150,7 @@ Stim_txt::Stim_txt(Microphone *top, void *handle, std::string file, int width, i
   } else {
     stimFile = fopen(file.c_str(), "r");
     if (stimFile == NULL) {
-      top->print("\033[1m\033[31mFailed to open stimuli file\033[0m: %s: %s", file, strerror(errno));
+      top->print("\033[1m\033[31mFailed to open stimuli file\033[0m: %s: %s", file.c_str(), strerror(errno));
     }
   }
   if (freq) period = 1000000000000UL / freq;
