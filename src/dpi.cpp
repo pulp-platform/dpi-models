@@ -34,6 +34,7 @@
 
 
 
+
 // NOTE for DPI models integration with Questasim.
 //
 // As vsim does not export symbols to dynamically loaded modules, we need
@@ -271,6 +272,21 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
       *itf_sub_id = 0;
     }
   }
+  else if (strncmp(chip_port_name, "i2s", 3) == 0)
+  {
+    *itf_type = (const char *)"I2S";
+    *itf_name = strdup(binding->port.c_str());
+    if (strlen(chip_port_name) > 3)
+    {
+      *itf_id = atoi(&chip_port_name[3]);
+      *itf_sub_id = 0;
+    }
+    else
+    {
+      *itf_id = 0;
+      *itf_sub_id = 0;
+    }
+  }
   else if (strncmp(chip_port_name, "ctrl", 4) == 0)
   {
     *itf_type = (const char *)"CTRL";
@@ -292,6 +308,7 @@ void dpi_driver_get_comp_itf_info(void *comp_handle, int index, int itf_index,
     }
   }
 }
+
 
 
 // Load the DPI model for the specified component JSON descriptor
@@ -322,7 +339,8 @@ void *dpi_model_load(void *config, void *handle)
     periph_api = api;
   }
 
-  return periph_api->model_load(config, handle);
+  void *result = periph_api->model_load(config, handle);
+  return result;
 }
 
 int dpi_model_start(void *handle)

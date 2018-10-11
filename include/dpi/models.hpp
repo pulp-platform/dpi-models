@@ -79,6 +79,15 @@ class Uart_itf : public Dpi_itf
 
 
 
+class I2s_itf : public Dpi_itf
+{
+  public:
+    virtual void edge(int64_t timestamp, int sck, int data) {}
+    void set_data(int data);
+};
+
+
+
 class Cpi_itf : public Dpi_itf
 {
   public:
@@ -131,6 +140,7 @@ public:
 
 protected:
   void print(const char *format, ...);
+  void fatal(const char *format, ...);
   js::config *get_config();
 
 private:

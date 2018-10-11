@@ -2,7 +2,7 @@ BUILD_DIR ?= $(CURDIR)/build
 
 ROOT_DPI_BUILD_DIR ?= $(BUILD_DIR)
 
-DPI_DIRS=test/spim_verif jtag/proxy uart/uart camera
+DPI_DIRS=test/spim_verif jtag/proxy uart/uart camera microphone
 
 
 -include $(PULP_SDK_HOME)/install/rules/dpi_rules.mk

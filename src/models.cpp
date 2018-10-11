@@ -90,6 +90,25 @@ void Dpi_model::print(const char *format, ...)
   }
 }
 
+void Dpi_model::fatal(const char *format, ...)
+{
+  int size = 1024;
+  while(1)
+  {
+    char str[size];
+    va_list ap;
+    va_start(ap, format);
+    int iter_size = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    if (iter_size <= size)
+    {
+      dpi_fatal(handle, str);
+      break;
+    }
+    size = iter_size;
+  }
+}
+
 void Dpi_model::create_task(void *arg1, void *arg2)
 {
   int task_id = tasks_cb.size();
@@ -270,29 +289,31 @@ js::config *Dpi_model::get_config()
 extern "C" void *model_load(void *_config, void *handle)
 {
   js::config *config = (js::config *)_config;
+
   js::config *module_config = config->get("module");
+
   if (module_config == NULL)
   {
     dpi_fatal_stub(handle, "ERROR, Failed to open periph model, didn't find configuration item 'model'");
     return NULL; 
   }
 
+  std::string module_name = module_config->get_str();
 
-  const char *module_name = module_config->get_str().c_str();
-
-  void *module = dlopen(module_name, RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
+  void *module = dlopen(module_name.c_str(), RTLD_NOW | RTLD_GLOBAL | RTLD_DEEPBIND);
   if (module == NULL)
   {
-    dpi_fatal_stub(handle, "ERROR, Failed to open periph model (%s) with error: %s", module_name, dlerror());
+    dpi_fatal_stub(handle, "ERROR, Failed to open periph model (%s) with error: %s", module_name.c_str(), dlerror());
     return NULL;
   }
 
   Dpi_model *(*model_new)(js::config *, void *) = (Dpi_model *(*)(js::config *, void *))dlsym(module, "dpi_model_new");
   if (model_new == NULL)
   {
-    dpi_fatal_stub(handle, "ERROR, invalid DPI model being loaded (%s)", module_name);
+    dpi_fatal_stub(handle, "ERROR, invalid DPI model being loaded (%s)", module_name.c_str());
     return NULL;
   }
 
-  return model_new(config, handle);
+  void *result =  model_new(config, handle);
+  return result;
 }
