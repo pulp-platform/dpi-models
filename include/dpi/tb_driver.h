@@ -99,6 +99,8 @@ void *dpi_jtag_bind(void *comp_handle, const char *name, int handle);
 
 void *dpi_cpi_bind(void *comp_handle, const char *name, int handle);
 
+void *dpi_ctrl_bind(void *comp_handle, const char *name, int handle);
+
 void *dpi_uart_bind(void *comp_handle, const char *name, int handle);
 
 void dpi_uart_edge(void *handle, int64_t timestamp, int data);
