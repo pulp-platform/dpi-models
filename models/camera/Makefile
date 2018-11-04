@@ -2,7 +2,7 @@ DPI_MODELS += camera
 
 camera_SRCS = camera/camera.cpp
 
-MAGICK=$(shell pkg-config --exists GraphicsMagick || echo FAILED)
+MAGICK=$(shell pkg-config --exists GraphicsMagick --atleast-version=1.3.23 || echo FAILED)
 
 ifeq '$(MAGICK)' ''
 camera_CFLAGS += $(shell pkg-config GraphicsMagick --cflags)
