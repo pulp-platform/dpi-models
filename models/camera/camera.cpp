@@ -148,6 +148,7 @@ STATE_WAIT_EOF
 enum {
   COLOR_MODE_GRAY,
   COLOR_MODE_RGB565,
+  COLOR_MODE_RAW,
 };
 
 #define TP 2
@@ -172,7 +173,12 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
   this->stream = NULL;
 
   // Default color mode is 8bit gray
-  this->color_mode = COLOR_MODE_GRAY;
+  std::string color_mode = config->get_child_str("color-mode");
+  if (color_mode == "gray")
+    this->color_mode = COLOR_MODE_GRAY;
+  else if (color_mode == "raw")
+    this->color_mode = COLOR_MODE_RAW;
+
   this->width = 324;
   this->height = 244;
 
@@ -263,6 +269,33 @@ void Camera::clock_gen()
           //data = 0.2989 * ((pixel >> 16) & 0xff) +
           //       0.5870 * ((pixel >>  8) & 0xff) +
           //       0.1140 * ((pixel >>  0) & 0xff);
+        }
+        else if (this->color_mode == COLOR_MODE_RAW)
+        {
+          this->bytesel = 1;
+
+          int pixel  = 0;
+
+          if (stream)
+          {
+            pixel = stream->get_pixel();
+          }
+
+          // Raw bayer mode. Line 0: BGBG, Line 1: GRGR
+          if (this->lineptr & 1)
+          {
+            if (this->colptr & 1)
+              this->data = (pixel >> 16) & 0xff;
+            else
+              this->data = (pixel >> 8) & 0xff;
+          }
+          else
+          {
+            if (this->colptr & 1)
+              this->data = (pixel >> 8) & 0xff;
+            else
+              this->data = (pixel >> 0) & 0xff;
+          }
         }
         else
         {
