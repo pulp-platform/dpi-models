@@ -317,3 +317,74 @@ extern "C" void *model_load(void *_config, void *handle)
   void *result =  model_new(config, handle);
   return result;
 }
+
+I2c_slave::I2c_slave(unsigned int address)
+ : address(address)
+{
+  this->state = I2C_SLAVE_STATE_WAIT_START;
+  this->prev_sda = 1;
+}
+
+void I2c_slave::send_byte(uint8_t byte)
+{
+  this->pending_send_byte = byte;
+}
+
+void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
+{
+  if (scl == 1 && this->prev_sda != sda_in)
+  {
+    if (this->prev_sda == 1)
+    {
+      this->state = I2C_SLAVE_STATE_WAIT_ADDRESS;
+      this->address = 0;
+      this->pending_bits = 8;
+    }
+    else
+    {
+      this->state = I2C_SLAVE_STATE_WAIT_START;
+      this->stop();
+    }
+    goto end;
+  }
+
+  if (scl == 0)
+    goto end;
+
+  switch (this->state)
+  {
+    case I2C_SLAVE_STATE_WAIT_ADDRESS: {
+      if (this->pending_bits > 1)
+        this->address = (this->address << 1) | sda_in;
+      else
+        this->is_read = sda_in;
+      this->pending_bits--;
+      if (this->pending_bits == 0)
+      {
+        this->start(this->address, this->is_read);
+        this->state = I2C_SLAVE_STATE_GET_DATA;
+        this->pending_bits = 8;
+      }
+      break;
+    }
+    case I2C_SLAVE_STATE_GET_DATA: {
+
+      if (sda_out)
+      {
+        *sda_out = (this->pending_send_byte >> 7) & 1;
+        this->pending_send_byte <<= 1;
+      }
+
+      this->pending_data = (this->pending_data << 1) | sda_in;
+      this->pending_bits--;
+      if (this->pending_bits == 0)
+      {
+        this->pending_bits = 8;
+        this->handle_byte(this->pending_data);
+      }
+    }
+  }
+
+end:
+  this->prev_sda = sda_in;
+}

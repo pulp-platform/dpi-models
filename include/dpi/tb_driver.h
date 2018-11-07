@@ -103,7 +103,11 @@ void *dpi_ctrl_bind(void *comp_handle, const char *name, int handle);
 
 void *dpi_uart_bind(void *comp_handle, const char *name, int handle);
 
+void *dpi_i2c_bind(void *comp_handle, const char *name, int handle);
+
 void dpi_uart_edge(void *handle, int64_t timestamp, int data);
+
+void dpi_i2c_edge(void *handle, int64_t timestamp, int scl, int sda);
 
 int dpi_qspim_cs_edge(void *handle, int64_t timestamp, int active);
 

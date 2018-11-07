@@ -32,6 +32,34 @@ using namespace std;
 class Camera;
 
 
+class Camera_i2c_itf : public I2c_itf
+{
+public:
+  Camera_i2c_itf(Camera *top) : top(top) {}
+  void tx_edge(int64_t timestamp, int scl, int sda);
+
+private:
+  Camera *top;
+};
+
+
+
+class Camera_i2c_slave : public I2c_slave
+{
+public:
+  Camera_i2c_slave(Camera *top, unsigned int address);
+
+  void start(unsigned int address, bool is_write);
+  void handle_byte(uint8_t byte);
+  void stop();
+
+private:
+  Camera *top;
+  int pending_bytes;
+  int pending_addr;
+};
+
+
 class Camera_stream {
 
 public:
@@ -60,10 +88,16 @@ private:
 
 class Camera : public Dpi_model
 {
+  friend class Camera_i2c_slave;
+
 public:
   Camera(js::config *config, void *handle);
 
   void start();
+
+  void i2c_tx_edge(int64_t timestamp, int scl, int sda);
+
+  bool i2c_is_read;
 
 private:
 
@@ -98,6 +132,9 @@ private:
   int data;
 
   Camera_stream *stream;
+
+  I2c_itf *i2c;
+  Camera_i2c_slave *i2c_slave;
 };
 
 enum {
@@ -129,6 +166,9 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
   cpi = new Cpi_itf();
   create_itf("cpi", static_cast<Cpi_itf *>(cpi));
 
+  i2c = new Camera_i2c_itf(this);
+  create_itf("i2c", static_cast<I2c_itf *>(i2c));
+
   this->stream = NULL;
 
   // Default color mode is 8bit gray
@@ -146,6 +186,7 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
     this->stream->set_image_size(this->width, this->height);
   }
 
+  this->i2c_slave = new Camera_i2c_slave(this, 0x24);
 }
 
 void Camera::start()
@@ -381,6 +422,71 @@ unsigned int Camera_stream::get_pixel()
 #endif
 }
 
+
+
+void Camera::i2c_tx_edge(int64_t timestamp, int scl, int sda)
+{
+  int sda_out = 0;
+  this->i2c_slave->handle_edge(scl, sda, &sda_out);
+  if (scl && this->i2c_is_read)
+  {
+    this->i2c->rx_edge(sda_out);
+  }
+}
+
+
+
+void Camera_i2c_itf::tx_edge(int64_t timestamp, int scl, int sda)
+{
+  top->i2c_tx_edge(timestamp, scl, sda);
+}
+
+Camera_i2c_slave::Camera_i2c_slave(Camera *top, unsigned int address) : I2c_slave(address), top(top)
+{
+  this->pending_addr = 0;
+  this->pending_bytes = 0;
+}
+
+void Camera_i2c_slave::start(unsigned int address, bool is_read)
+{
+  this->top->i2c_is_read = is_read;
+}
+
+void Camera_i2c_slave::handle_byte(uint8_t byte)
+{
+  if (this->pending_bytes == 0)
+  {
+    this->pending_addr = this->pending_addr | (byte << 8);
+    this->pending_bytes = 1;
+  }
+  else if (this->pending_bytes == 1)
+  {
+    this->pending_addr = this->pending_addr | byte;
+    this->pending_bytes = 2;
+
+    this->top->print("Reg access (address: 0x%x, is_read: %d)\n", this->pending_addr, this->top->i2c_is_read);
+    if (this->top->i2c_is_read)
+    {
+      this->pending_addr = 0;
+      this->pending_bytes = 0;
+      this->send_byte(0x00);
+    }
+    else
+    {
+      this->pending_bytes = 2;
+    }
+  }
+  else
+  {
+    this->top->print("Writing register (address: 0x%x, value: 0x%x)\n", this->pending_addr, byte);
+    this->pending_bytes = 0;
+    this->pending_addr = 0;
+  }
+}
+
+void Camera_i2c_slave::stop()
+{
+}
 
 
 extern "C" Dpi_model *dpi_model_new(js::config *config, void *handle)

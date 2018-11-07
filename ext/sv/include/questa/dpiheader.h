@@ -106,6 +106,13 @@ dpi_uart_bind(
 
 DPI_LINK_DECL DPI_DLLESPEC
 void*
+dpi_i2c_bind(
+    void* dpi_model,
+    const char* name,
+    int handle);
+
+DPI_LINK_DECL DPI_DLLESPEC
+void*
 dpi_cpi_bind(
     void* dpi_model,
     const char* name,
@@ -231,6 +238,18 @@ dpi_uart_edge(
     void* handle,
     int64_t timestamp,
     int data);
+
+DPI_LINK_DECL void
+dpi_i2c_edge(
+    void* handle,
+    int64_t timestamp,
+    int scl,
+    int sda);
+
+DPI_LINK_DECL void
+dpi_i2c_rx_edge(
+    int handle,
+    int sda);
 
 DPI_LINK_DECL void
 dpi_i2s_edge(

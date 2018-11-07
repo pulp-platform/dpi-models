@@ -79,6 +79,15 @@ class Uart_itf : public Dpi_itf
 
 
 
+class I2c_itf : public Dpi_itf
+{
+  public:
+    virtual void tx_edge(int64_t timestamp, int scl, int sda) {}
+    void rx_edge(int sda);
+};
+
+
+
 class I2s_itf : public Dpi_itf
 {
   public:
@@ -148,6 +157,35 @@ private:
   std::map<std::string, Dpi_itf *> itfs;
   void *handle;
   Dpi_handler *first_handler;
+};
+
+typedef enum
+{
+  I2C_SLAVE_STATE_WAIT_START,
+  I2C_SLAVE_STATE_WAIT_ADDRESS,
+  I2C_SLAVE_STATE_GET_DATA
+} I2c_slave_state_e;
+
+class I2c_slave
+{
+public:
+  I2c_slave(unsigned int address);
+  virtual void start(unsigned int address, bool is_read) {}
+  virtual void handle_byte(uint8_t byte) {}
+  virtual void stop() {}
+
+  void send_byte(uint8_t byte);
+
+  void handle_edge(int scl, int sda_int, int *sda_out);
+
+private:
+  unsigned int address;
+  uint8_t pending_data;
+  bool is_read;
+  I2c_slave_state_e state;
+  int pending_bits;
+  int prev_sda;
+  unsigned int pending_send_byte;
 };
 
 
