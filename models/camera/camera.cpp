@@ -174,10 +174,10 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
 
   // Default color mode is 8bit gray
   std::string color_mode = config->get_child_str("color-mode");
-  if (color_mode == "gray")
-    this->color_mode = COLOR_MODE_GRAY;
-  else if (color_mode == "raw")
+  if (color_mode == "raw")
     this->color_mode = COLOR_MODE_RAW;
+  else
+    this->color_mode = COLOR_MODE_GRAY;
 
   this->width = 324;
   this->height = 244;
