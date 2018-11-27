@@ -323,11 +323,17 @@ I2c_slave::I2c_slave(unsigned int address)
 {
   this->state = I2C_SLAVE_STATE_WAIT_START;
   this->prev_sda = 1;
+  this->pending_send_ack = false;
 }
 
 void I2c_slave::send_byte(uint8_t byte)
 {
   this->pending_send_byte = byte;
+}
+
+void I2c_slave::send_ack()
+{
+  this->pending_send_ack = true;
 }
 
 void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
@@ -349,7 +355,14 @@ void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
   }
 
   if (scl == 0)
+  {
+    if (this->pending_send_ack)
+    {
+      this->pending_send_ack = false;
+      *sda_out = 1;
+    }
     goto end;
+  }
 
   switch (this->state)
   {
@@ -362,7 +375,7 @@ void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
       if (this->pending_bits == 0)
       {
         this->start(this->address, this->is_read);
-        this->state = I2C_SLAVE_STATE_GET_DATA;
+        this->state = I2C_SLAVE_STATE_ACK;
         this->pending_bits = 8;
       }
       break;
@@ -381,8 +394,16 @@ void I2c_slave::handle_edge(int scl, int sda_in, int *sda_out)
       {
         this->pending_bits = 8;
         this->handle_byte(this->pending_data);
+        this->state = I2C_SLAVE_STATE_ACK;
       }
+      break;
     }
+    case I2C_SLAVE_STATE_ACK: {
+      this->ack();
+      this->state = I2C_SLAVE_STATE_GET_DATA;
+      break;
+    }
+
   }
 
 end:

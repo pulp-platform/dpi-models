@@ -163,7 +163,8 @@ typedef enum
 {
   I2C_SLAVE_STATE_WAIT_START,
   I2C_SLAVE_STATE_WAIT_ADDRESS,
-  I2C_SLAVE_STATE_GET_DATA
+  I2C_SLAVE_STATE_GET_DATA,
+  I2C_SLAVE_STATE_ACK
 } I2c_slave_state_e;
 
 class I2c_slave
@@ -173,8 +174,10 @@ public:
   virtual void start(unsigned int address, bool is_read) {}
   virtual void handle_byte(uint8_t byte) {}
   virtual void stop() {}
+  virtual void ack() {}
 
   void send_byte(uint8_t byte);
+  void send_ack();
 
   void handle_edge(int scl, int sda_int, int *sda_out);
 
@@ -186,6 +189,7 @@ private:
   int pending_bits;
   int prev_sda;
   unsigned int pending_send_byte;
+  bool pending_send_ack;
 };
 
 
