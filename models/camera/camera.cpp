@@ -282,7 +282,8 @@ void Camera::clock_gen()
           }
 
           // Raw bayer mode. Line 0: BGBG, Line 1: GRGR
-          if (this->lineptr & 1)
+          int line = this->width - this->lineptr -1;
+          if (line & 1)
           {
             if (this->colptr & 1)
               this->data = (pixel >> 16) & 0xff;
