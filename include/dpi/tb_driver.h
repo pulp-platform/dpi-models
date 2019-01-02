@@ -101,6 +101,8 @@ void *dpi_cpi_bind(void *comp_handle, const char *name, int handle);
 
 void *dpi_ctrl_bind(void *comp_handle, const char *name, int handle);
 
+void *dpi_gpio_bind(void *comp_handle, const char *name, int handle);
+
 void *dpi_uart_bind(void *comp_handle, const char *name, int handle);
 
 void *dpi_i2c_bind(void *comp_handle, const char *name, int handle);
@@ -112,6 +114,8 @@ void dpi_i2c_edge(void *handle, int64_t timestamp, int scl, int sda);
 int dpi_qspim_cs_edge(void *handle, int64_t timestamp, int active);
 
 void dpi_qspim_edge(void *handle, int64_t timestamp, int data_0, int data_1, int data_2, int data_3, int mask);
+
+void dpi_gpio_edge(void *handle, int64_t timestamp, int data);
 
 
 #ifdef __cplusplus

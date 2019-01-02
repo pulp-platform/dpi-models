@@ -354,7 +354,6 @@ void Spim_verif::handle_command(uint64_t cmd)
 
 void Spim_verif_gpio_itf::edge(int64_t timestamp, int data)
 {
-  printf("Gpio edge\n");
 }
 
 
