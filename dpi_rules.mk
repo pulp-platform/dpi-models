@@ -1,13 +1,13 @@
 DPI_BUILD_DIR = $(ROOT_DPI_BUILD_DIR)/models
 
-DPI_INSTALL_PATH ?= $(PULP_SDK_WS_INSTALL)/lib
+DPI_INSTALL_PATH ?= $(INSTALL_DIR)/lib
 
 DPI_MAKEFILE_LIST = $(addsuffix /Makefile,$(DPI_DIRS))
 
 CPP=g++
 
-DPI_MODEL_CFLAGS=-MMD -MP -O2 -g -fpic -std=c++11 -I$(PULP_SDK_WS_INSTALL)/include
-DPI_MODEL_LDFLAGS=-O2 -g -shared -L$(PULP_SDK_WS_INSTALL)/lib
+DPI_MODEL_CFLAGS=-MMD -MP -O2 -g -fpic -std=c++11 -I$(INSTALL_DIR)/include
+DPI_MODEL_LDFLAGS=-O2 -g -shared -L$(INSTALL_DIR)/lib
 
 DPI_MODEL_CFLAGS += -Werror -Wfatal-errors
 DPI_MODEL_LDFLAGS += -Werror -Wfatal-errors
