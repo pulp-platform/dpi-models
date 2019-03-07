@@ -91,8 +91,8 @@ class I2c_itf : public Dpi_itf
 class I2s_itf : public Dpi_itf
 {
   public:
-    virtual void edge(int64_t timestamp, int sck, int data) {}
-    void set_data(int data);
+    virtual void edge(int64_t timestamp, int sck, int ws, int sd) {}
+    void rx_edge(int sck, int ws, int sd);
 };
 
 

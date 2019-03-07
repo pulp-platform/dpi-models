@@ -25,10 +25,10 @@
 
 
 
-void dpi_i2s_edge(void *handle, int64_t timestamp, int sck, int data)
+void dpi_i2s_edge(void *handle, int64_t timestamp, int sck, int ws, int sd)
 {
   I2s_itf *itf = static_cast<I2s_itf *>((Dpi_itf *)handle);
-  itf->edge(timestamp, sck, data);
+  itf->edge(timestamp, sck, ws, sd);
 }
 
 void *dpi_i2s_bind(void *comp_handle, const char *name, int handle)
@@ -37,7 +37,7 @@ void *dpi_i2s_bind(void *comp_handle, const char *name, int handle)
   return model->bind_itf(name, (void *)(long)handle);
 }
 
-void I2s_itf::set_data(int data)
+void I2s_itf::rx_edge(int sck, int ws, int sd)
 {
-  dpi_i2s_set_data((int)(long)sv_handle, data);
+  dpi_i2s_rx_edge((int)(long)sv_handle, sck, ws, sd);
 }

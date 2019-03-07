@@ -37,7 +37,7 @@ class Microphone_itf : public I2s_itf
 {
 public:
   Microphone_itf(Microphone *top) : top(top) {}
-  void edge(int64_t timestamp, int sck, int data);
+  void edge(int64_t timestamp, int sck, int ws, int sd);
 
 private:
     Microphone *top;
@@ -55,7 +55,7 @@ public:
   Microphone(js::config *config, void *handle);
 
   void start();
-  void edge(int64_t timestamp, int sck, int data);
+  void edge(int64_t timestamp, int sck, int ws, int sd);
 
 private:
 
@@ -320,7 +320,7 @@ int I2s_mic_channel::popData(int64_t timestamp)
 void Microphone::setData(int64_t timestamp, int channel)
 {
   int val = channels[channel]->popData(timestamp);
-  itf->set_data(val);
+  itf->rx_edge(0, 0, val);
 }
 
 void Microphone::clrData(int64_t timestamp, int channel)
@@ -334,7 +334,7 @@ void Microphone::setData(int64_t timestamp)
 }
 
 
-void Microphone::edge(int64_t timestamp, int sck, int ws)
+void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
 {
   if (ddr) {
 
@@ -393,9 +393,9 @@ void Microphone::edge(int64_t timestamp, int sck, int ws)
 }
 
 
-void Microphone_itf::edge(int64_t timestamp, int sck, int ws)
+void Microphone_itf::edge(int64_t timestamp, int sck, int ws, int sd)
 {
-  this->top->edge(timestamp, sck, ws);
+  this->top->edge(timestamp, sck, ws, sd);
 }
 
 Microphone::Microphone(js::config *config, void *handle)
