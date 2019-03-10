@@ -59,8 +59,8 @@ public:
 
 private:
 
-  void setData(int64_t timestamp);
-  void setData(int64_t timestamp, int channel);
+  void setData(int64_t timestamp, int sck, int ws);
+  void setData(int64_t timestamp, int channel, int sck, int ws);
   void clrData(int64_t timestamp, int channel);
 
   I2s_itf *itf;
@@ -317,10 +317,10 @@ int I2s_mic_channel::popData(int64_t timestamp)
 
 
 
-void Microphone::setData(int64_t timestamp, int channel)
+void Microphone::setData(int64_t timestamp, int channel, int sck, int ws)
 {
   int val = channels[channel]->popData(timestamp);
-  itf->rx_edge(0, 0, val);
+  itf->rx_edge(sck, ws, val);
 }
 
 void Microphone::clrData(int64_t timestamp, int channel)
@@ -328,9 +328,9 @@ void Microphone::clrData(int64_t timestamp, int channel)
   channels[channel]->clrData(timestamp);
 }
 
-void Microphone::setData(int64_t timestamp)
+void Microphone::setData(int64_t timestamp, int sck, int ws)
 {
-  setData(timestamp, currentChannel);
+  setData(timestamp, currentChannel, sck, ws);
 }
 
 
@@ -342,7 +342,7 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
     // We ignore WS and send a data at each edge
     if (prevSck == 0 && sck == 1) {
       // Rising edge, prepare data from second microphone so that it is sampled during th next falling edge
-      setData(timestamp, 1);
+      setData(timestamp, 1, sck, ws);
     } else {
       if (flush_data >= 0)
       {
@@ -355,7 +355,7 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
       }
 
       // Falling edge, prepare data from first microphone so that it is sampled during th next raising edge
-      setData(timestamp, 0);
+      setData(timestamp, 0, sck, ws);
     }
 
     if (prevWs != ws)
@@ -378,7 +378,7 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
       }
 
       // Falling edge, update data
-      setData(timestamp);
+      setData(timestamp, sck, ws);
     } else if (prevSck == 0 && sck == 1) {
     
       if (prevWs != ws) {
