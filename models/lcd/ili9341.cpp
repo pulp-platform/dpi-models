@@ -440,6 +440,78 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
           this->state = STATE_SET_MADCTL;
           this->waiting_bits = 8;
           break;
+
+        case 0xEF:
+          this->waiting_bits = 24;
+          break;
+
+        case 0xCF:
+          this->waiting_bits = 24;
+          break;
+
+        case 0xED:
+          this->waiting_bits = 32;
+          break;
+
+        case 0xE8:
+          this->waiting_bits = 24;
+          break;
+
+        case 0xCB:
+          this->waiting_bits = 40;
+          break;
+
+        case 0xF7:
+          this->waiting_bits = 8;
+          break;
+
+        case 0xEA:
+          this->waiting_bits = 16;
+          break;
+
+        case 0xC0:
+          this->waiting_bits = 8;
+          break;
+
+        case 0xC1:
+          this->waiting_bits = 8;
+          break;
+
+        case 0xC5:
+          this->waiting_bits = 16;
+          break;
+
+        case 0xC7:
+          this->waiting_bits = 8;
+          break;
+
+        case 0x37:
+          this->waiting_bits = 8;
+          break;
+
+        case 0x3A:
+          this->waiting_bits = 8;
+          break;
+
+        case 0xB1:
+          this->waiting_bits = 16;
+          break;
+
+        case 0xB6:
+          this->waiting_bits = 24;
+          break;
+
+        case 0xF2:
+          this->waiting_bits = 8;
+          break;
+
+        case 0x26:
+          this->waiting_bits = 15*8;
+          break;
+
+        default:
+          fatal("Received unknown command (command: 0x%2.2x)", this->pending_word & 0xff);
+          break;
       }
     }
     else if (this->pending_bits == this->waiting_bits)
