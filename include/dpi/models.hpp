@@ -111,6 +111,7 @@ class Ctrl_itf : public Dpi_itf
 {
   public:
     void reset_edge(int reset);
+    void config_edge(uint32_t config);
 };
 
 

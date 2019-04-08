@@ -35,3 +35,9 @@ void Ctrl_itf::reset_edge(int reset)
 {
   dpi_ctrl_reset_edge((int)(long)sv_handle, reset);
 }
+
+
+void Ctrl_itf::config_edge(uint32_t config)
+{
+  dpi_ctrl_config_edge((int)(long)sv_handle, config);
+}

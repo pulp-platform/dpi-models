@@ -227,6 +227,11 @@ dpi_ctrl_reset_edge(
     int reset);
 
 DPI_LINK_DECL void
+dpi_ctrl_config_edge(
+    int handle,
+    int config);
+
+DPI_LINK_DECL void
 dpi_fatal(
     void* handle,
     const char* msg);
