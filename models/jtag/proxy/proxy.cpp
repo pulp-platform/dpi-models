@@ -55,7 +55,7 @@ private:
   void jtag_buff_flush();
   void dpi_task();
   static void dpi_task_stub(Proxy *proxy);
-  void reset_req(int value);
+  void reset_req(int value, int duration);
   void config_req(int value);
 
   Jtag_itf *jtag;
@@ -75,6 +75,7 @@ private:
   bool has_req = false;
   bool has_str = false;
   bool reset_set = false;
+  int reset_duration;
   int reset_value;
   bool config_set = false;
   int config_value;
@@ -132,7 +133,7 @@ void Proxy::jtag_buff_flush()
   jtag_buff_current = 0;
 }
 
-void Proxy::reset_req(int value)
+void Proxy::reset_req(int value, int duration)
 {
   pthread_mutex_lock(&mutex);
   while(has_req || jtag_has_buff) {
@@ -140,6 +141,7 @@ void Proxy::reset_req(int value)
   }
   has_req = true;
   reset_set = true;
+  reset_duration = duration;
   reset_value = value;
   pthread_mutex_unlock(&mutex);
   raise_event_from_ext();
@@ -220,7 +222,7 @@ void Proxy::proxy_loop(int sock)
     }
     else if (req.type == DEBUG_BRIDGE_RESET_REQ)
     {
-      reset_req(req.reset.active);
+      reset_req(req.reset.active, req.reset.duration);
     }
     else if (req.type == DEBUG_BRIDGE_CONFIG_REQ)
     {
@@ -328,7 +330,8 @@ void Proxy::dpi_task()
         reset_set = false;
         has_req = false;
         ctrl->reset_edge(reset_value);
-        wait(1000000);
+
+        wait(reset_duration);
         pthread_cond_signal(&cond);
         pthread_mutex_unlock(&mutex);
         continue;
