@@ -186,12 +186,11 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
   js::config *gpios_conf = config->get("gpio");
   if (gpios_conf != NULL)
   {
-    for (int i; i<gpios_conf->get_size(); i++)
+    for (auto x: gpios_conf->get_childs())
     {
-      js::config *gpio_conf = gpios_conf->get_elem(i);
       Spim_verif_gpio_itf *gpio = new Spim_verif_gpio_itf(this);
       gpios.push_back(gpio);
-      this->create_itf(gpio_conf->get_str(), static_cast<Dpi_itf *>(gpio));
+      this->create_itf(x.second->get_str(), static_cast<Dpi_itf *>(gpio));
     }
   }
 
