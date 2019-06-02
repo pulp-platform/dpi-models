@@ -52,6 +52,7 @@ public:
   void start(unsigned int address, bool is_write);
   void handle_byte(uint8_t byte);
   void stop();
+  void ack();
 
 private:
   Camera *top;
@@ -515,6 +516,14 @@ void Camera_i2c_slave::handle_byte(uint8_t byte)
     this->top->print("Writing register (address: 0x%x, value: 0x%x)\n", this->pending_addr, byte);
     this->pending_bytes = 0;
     this->pending_addr = 0;
+  }
+}
+
+void Camera_i2c_slave::ack()
+{
+  if (this->top->i2c_is_read)
+  {
+    this->send_byte(0);
   }
 }
 
