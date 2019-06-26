@@ -90,6 +90,30 @@ void Dpi_model::print(const char *format, ...)
   }
 }
 
+void *Dpi_model::trace_new(const char *name)
+{
+  return dpi_trace_new(this->handle, name);
+}
+
+void Dpi_model::trace_msg(void *trace, int level, const char *format, ...)
+{
+  int size = 1024;
+  while(1)
+  {
+    char str[size];
+    va_list ap;
+    va_start(ap, format);
+    int iter_size = vsnprintf(str, size, format, ap);
+    va_end(ap);
+    if (iter_size <= size)
+    {
+      dpi_trace_msg(trace, level, str);
+      break;
+    }
+    size = iter_size;
+  }
+}
+
 void Dpi_model::fatal(const char *format, ...)
 {
   int size = 1024;

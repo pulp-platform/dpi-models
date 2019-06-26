@@ -392,7 +392,6 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
   prevSck = sck; 
 }
 
-
 void Microphone_itf::edge(int64_t timestamp, int sck, int ws, int sd)
 {
   this->top->edge(timestamp, sck, ws, sd);

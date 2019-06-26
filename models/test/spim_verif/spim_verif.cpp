@@ -145,6 +145,7 @@ private:
   int cmd_count = 0;
   int dummy_cycles = 0;
   bool wait_cs;
+  int command_addr;
   int current_addr;
   int current_write_addr;
   int current_size;
@@ -213,6 +214,7 @@ void Spim_verif::handle_read(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
   current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
+  command_addr = current_addr;
 
   if (verbose) print("Handling read command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
@@ -227,6 +229,7 @@ void Spim_verif::handle_write(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
   current_write_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
+  command_addr = current_write_addr;
 
   if (verbose) print("Handling write command (size: 0x%x, addr: 0x%x)", size, current_write_addr);
 
@@ -261,6 +264,7 @@ void Spim_verif::handle_full_duplex(uint64_t cmd)
 {
   int size = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_INFO_BIT, SPIM_VERIF_CMD_INFO_WIDTH);
   current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
+  command_addr = current_addr;
 
   if (verbose) print("Handling full duplex command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
@@ -379,6 +383,10 @@ void Spim_verif::cs_edge(int64_t timestamp, int cs)
 
   if (verbose) print("CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
   if (cs == 1) {
+    // Reset pending addresses to detect CS edge during command
+    current_write_addr = command_addr;
+    current_addr = command_addr;
+
     this->wait_cs = false;
     qspi0->set_data(3);
   }

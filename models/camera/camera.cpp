@@ -136,6 +136,8 @@ private:
 
   I2c_itf *i2c;
   Camera_i2c_slave *i2c_slave;
+
+  void *trace;
 };
 
 enum {
@@ -194,6 +196,8 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
   }
 
   this->i2c_slave = new Camera_i2c_slave(this, 0x24);
+
+  this->trace = this->trace_new("camera");
 }
 
 void Camera::start()
@@ -222,7 +226,7 @@ void Camera::clock_gen()
   {
     switch (this->state) {
       case STATE_INIT:
-        this->print("State INIT\n");
+        this->trace_msg(this->trace, 4, "State INIT");
         this->cnt = 0;
         this->targetcnt = 3*TLINE;
         this->state = STATE_SOF;
@@ -231,7 +235,9 @@ void Camera::clock_gen()
         break;
 
       case STATE_SOF:
-        this->print("State SOF (cnt: %d, targetcnt: %d)\n", this->cnt, this->targetcnt);
+        if (this->cnt == 0)
+          this->trace_msg(this->trace, 2, "Starting frame");
+        this->trace_msg(this->trace, 4, "State SOF (cnt: %d, targetcnt: %d)", this->cnt, this->targetcnt);
         this->vsync = 1;
         this->cnt++;
         if (this->cnt == this->targetcnt) {
@@ -243,7 +249,7 @@ void Camera::clock_gen()
         break;
 
       case STATE_WAIT_SOF:
-        this->print("State WAIT_SOF (cnt: %d, targetcnt: %d)\n", this->cnt, this->targetcnt);
+        this->trace_msg(this->trace, 4, "State WAIT_SOF (cnt: %d, targetcnt: %d)", this->cnt, this->targetcnt);
         this->cnt++;
         if (this->cnt == this->targetcnt) {
           this->state = STATE_SEND_LINE;
@@ -336,12 +342,12 @@ void Camera::clock_gen()
         } else {
           this->bytesel = 1;
         }
-        this->print("State SEND_LINE (data: 0x%x)\n", data);
+        this->trace_msg(this->trace, 4, "State SEND_LINE (data: 0x%x)", data);
         break;
       }
 
       case STATE_WAIT_EOF:
-        this->print("State WAIT_EOF (cnt: %d, targetcnt: %d)\n", this->cnt, this->targetcnt);
+        this->trace_msg(this->trace, 4, "State WAIT_EOF (cnt: %d, targetcnt: %d)", this->cnt, this->targetcnt);
         this->href = 0;
         this->data = 0;
         this->cnt++;
@@ -407,7 +413,7 @@ bool Camera_stream::fetch_image()
     frame_index = 0;
   }
 
-  //dpi_print(top->handle, ("Opened image (path: " + string(path) + ")\n").c_str());
+  //dpi_print(top->handle, ("Opened image (path: " + string(path) + ")").c_str());
   frame_index++;
 
 #ifdef __MAGICK__
@@ -499,7 +505,7 @@ void Camera_i2c_slave::handle_byte(uint8_t byte)
     this->pending_addr = this->pending_addr | byte;
     this->pending_bytes = 2;
 
-    this->top->print("Reg access (address: 0x%x, is_read: %d)\n", this->pending_addr, this->top->i2c_is_read);
+    this->top->trace_msg(this->top->trace, 2, "Reg access (address: 0x%x, is_read: %d)", this->pending_addr, this->top->i2c_is_read);
     if (this->top->i2c_is_read)
     {
       this->pending_addr = 0;
@@ -513,7 +519,7 @@ void Camera_i2c_slave::handle_byte(uint8_t byte)
   }
   else
   {
-    this->top->print("Writing register (address: 0x%x, value: 0x%x)\n", this->pending_addr, byte);
+    this->top->trace_msg(this->top->trace, 2, "Writing register (address: 0x%x, value: 0x%x)", this->pending_addr, byte);
     this->pending_bytes = 0;
     this->pending_addr = 0;
   }

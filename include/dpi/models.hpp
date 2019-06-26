@@ -149,6 +149,8 @@ public:
   void start_all();
 
 protected:
+  void *trace_new(const char *name);
+  void trace_msg(void *trace, int level, const char *format, ...);
   void print(const char *format, ...);
   void fatal(const char *format, ...);
   js::config *get_config();

@@ -300,6 +300,18 @@ dpi_cpi_edge(
     int data);
 
 
+DPI_LINK_DECL void *
+dpi_trace_new(
+    void* handle,
+    const char* name);
+
+
+DPI_LINK_DECL void
+dpi_trace_msg(
+    void* name,
+    int level, 
+    const char* msg);
+
 DPI_LINK_DECL void
 dpi_print(
     void* handle,
