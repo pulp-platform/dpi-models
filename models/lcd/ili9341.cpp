@@ -185,10 +185,10 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
   this->width = 240;
   this->height = 320;
 
+#if defined(__USE_SDL__)
+
   this->pixels = new uint32_t[this->width*this->height];
   memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
-
-#if defined(__USE_SDL__)
 
   if (config->get_child_bool("enabled"))
   {
