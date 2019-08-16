@@ -182,30 +182,38 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
 
   this->madctl.raw = 0;
 
-#if defined(__USE_SDL__)
   this->width = 240;
   this->height = 320;
 
   this->pixels = new uint32_t[this->width*this->height];
-  SDL_Init(SDL_INIT_VIDEO);
-
-  this->window = SDL_CreateWindow("lcd_ili9341",
-      SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, this->width, this->height, 0);
-
-  this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
-
-  this->texture = SDL_CreateTexture(this->renderer,
-      SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, this->width, this->height);
-
   memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
 
-  SDL_UpdateTexture(this->texture, NULL, this->pixels, this->width * sizeof(Uint32));
+#if defined(__USE_SDL__)
 
-  SDL_RenderClear(this->renderer);
-  SDL_RenderCopy(this->renderer, this->texture, NULL, NULL);
-  SDL_RenderPresent(this->renderer);
+  if (config->get_child_bool("enabled"))
+  {
+    SDL_Init(SDL_INIT_VIDEO);
 
-  this->thread = new std::thread(&ili9341::fb_routine, this);
+    this->window = SDL_CreateWindow("lcd_ili9341",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, this->width, this->height, 0);
+
+    this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+
+    this->texture = SDL_CreateTexture(this->renderer,
+        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, this->width, this->height);
+
+    SDL_UpdateTexture(this->texture, NULL, this->pixels, this->width * sizeof(Uint32));
+
+    SDL_RenderClear(this->renderer);
+    SDL_RenderCopy(this->renderer, this->texture, NULL, NULL);
+    SDL_RenderPresent(this->renderer);
+
+    this->thread = new std::thread(&ili9341::fb_routine, this);
+  }
+  else
+  {
+    this->window = NULL;
+  }
 #endif
 
 }
