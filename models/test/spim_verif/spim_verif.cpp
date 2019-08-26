@@ -161,6 +161,9 @@ private:
   int tx_dump_bits;
   bool tx_dump_qpi;
   int tx_dump_byte;
+  int mem_size;
+
+  void *trace;
 };
 
 
@@ -177,9 +180,9 @@ void Spim_verif_gpio_handler::gpio_handler_stub(Spim_verif_gpio_handler *_this)
 
 Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, handle)
 {
-  int mem_size = config->get("mem_size")->get_int();
+  this->mem_size = config->get("mem_size")->get_int();
   verbose = true; //config->get("verbose")->get_bool();
-  print("Creating SPIM VERIF model (mem_size: 0x%x)", mem_size);
+  print("Creating SPIM VERIF model (mem_size: 0x%x)", this->mem_size);
   data = new unsigned char[mem_size];
   qspi0 = new Spim_verif_qspi_itf(this);
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
@@ -208,6 +211,8 @@ Spim_verif::Spim_verif(js::config *config, void *handle) : Dpi_model(config, han
     this->tx_file = fopen(path_config->get_str().c_str(), "wb");
     this->tx_dump_qpi = qpi_config != NULL && qpi_config->get_bool();
   }
+
+  this->trace = this->trace_new(config->get_child_str("name").c_str());
 }
 
 void Spim_verif::handle_read(uint64_t cmd)
@@ -216,7 +221,7 @@ void Spim_verif::handle_read(uint64_t cmd)
   current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
   command_addr = current_addr;
 
-  if (verbose) print("Handling read command (size: 0x%x, addr: 0x%x)", size, current_addr);
+  this->trace_msg(this->trace, 2, "Handling read command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
   state = STATE_READ_CMD;
   current_size = size;
@@ -231,7 +236,7 @@ void Spim_verif::handle_write(uint64_t cmd)
   current_write_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
   command_addr = current_write_addr;
 
-  if (verbose) print("Handling write command (size: 0x%x, addr: 0x%x)", size, current_write_addr);
+  this->trace_msg(this->trace, 2, "Handling write command (size: 0x%x, addr: 0x%x)", size, current_write_addr);
 
   state = STATE_WRITE_CMD;
   current_write_size = size;
@@ -240,7 +245,7 @@ void Spim_verif::handle_write(uint64_t cmd)
 
 void Spim_verif::gpio_handler(int gpio, int value)
 {
-  if (verbose) print("Setting GPIO value (gpio: %d, value: %d)", gpio, value);
+  this->trace_msg(this->trace, 2, "Setting GPIO value (gpio: %d, value: %d)", gpio, value);
   this->gpios[gpio]->set_data(value);
 }
 
@@ -248,7 +253,7 @@ void Spim_verif::handle_gpio_set(uint64_t cmd_value)
 {
   cmd_gpio_set_t cmd = { .raw=cmd_value };
 
-  if (verbose) print("Handling gpio set command (id: %d, value: %d, delay: %d)", cmd.id, cmd.value, cmd.delay, cmd.delay);
+  this->trace_msg(this->trace, 2, "Handling gpio set command (id: %d, value: %d, delay: %d)", cmd.id, cmd.value, cmd.delay, cmd.delay);
 
   if (cmd.id >= this->gpios.size())
   {
@@ -266,7 +271,7 @@ void Spim_verif::handle_full_duplex(uint64_t cmd)
   current_addr = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_ADDR_BIT, SPIM_VERIF_CMD_ADDR_WIDTH);
   command_addr = current_addr;
 
-  if (verbose) print("Handling full duplex command (size: 0x%x, addr: 0x%x)", size, current_addr);
+  this->trace_msg(this->trace, 2, "Handling full duplex command (size: 0x%x, addr: 0x%x)", size, current_addr);
 
   state = STATE_FULL_DUPLEX_CMD;
   current_write_addr = current_addr;
@@ -287,8 +292,15 @@ void Spim_verif::exec_read()
 
   if (nb_bits == 0)
   {
-    byte = data[current_addr];
-    if (verbose) print("Read byte from memory (value: 0x%x, rem_size: 0x%x)", byte, current_size);
+    if (this->current_addr >= this->mem_size)
+    {
+      this->fatal("Trying to read outside memory range (addr: 0x%x, mem size: 0x%x)\n", this->current_addr, this->mem_size);
+    }
+    else
+    {
+      byte = data[current_addr];
+      this->trace_msg(this->trace, 4, "Read byte from memory (value: 0x%x, rem_size: 0x%x)", byte, current_size);
+    }
     nb_bits = 8;
     current_addr++;
   }
@@ -316,9 +328,16 @@ void Spim_verif::exec_write(int val)
   nb_write_bits++;
   if (nb_write_bits == 8)
   {
-    data[current_write_addr] = pending_write;
+    if (this->current_write_addr >= this->mem_size)
+    {
+      this->fatal("Trying to write outside memory range (addr: 0x%x, mem size: 0x%x)\n", this->current_write_addr, this->mem_size);
+    }
+    else
+    {
+      data[current_write_addr] = pending_write;
 
-    if (verbose) print("Wrote byte to memory (addr: 0x%x, value: 0x%x, rem_size: 0x%x)", current_write_addr, data[current_write_addr], current_write_size-1);
+      this->trace_msg(this->trace, 4, "Wrote byte to memory (addr: 0x%x, value: 0x%x, rem_size: 0x%x)", current_write_addr, data[current_write_addr], current_write_size-1);
+    }
 
     nb_write_bits = 0;
     current_write_addr++;
@@ -331,7 +350,7 @@ void Spim_verif::exec_write(int val)
     {
       int shift = 8 - nb_write_bits;
       pending_write = (data[current_write_addr] & ~((1<<shift) - 1)) | (pending_write << shift);
-      if (verbose) print("Wrote byte to memory (value: 0x%x)", data[current_write_addr]);
+      this->trace_msg(this->trace, 4, "Wrote byte to memory (value: 0x%x)", data[current_write_addr]);
     }
     wait_cs = true;
     state = STATE_GET_CMD;
@@ -340,7 +359,7 @@ void Spim_verif::exec_write(int val)
 
 void Spim_verif::handle_command(uint64_t cmd)
 {
-  if (verbose) print("Handling command %x", current_cmd);
+  this->trace_msg(this->trace, 2, "Handling command %x", current_cmd);
 
   int cmd_id = SPIM_VERIF_FIELD_GET(cmd, SPIM_VERIF_CMD_BIT, SPIM_VERIF_CMD_WIDTH);
 
@@ -381,7 +400,7 @@ void Spim_verif::cs_edge(int64_t timestamp, int cs)
 
   this->current_cs = cs;
 
-  if (verbose) print("CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
+  this->trace_msg(this->trace, 3, "CS edge (timestamp: %ld, cs: %d)", timestamp, cs);
   if (cs == 1) {
     // Reset pending addresses to detect CS edge during command
     current_write_addr = command_addr;
@@ -402,7 +421,7 @@ void Spim_verif::cs_edge(int64_t timestamp, int cs)
 
 void Spim_verif::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
-  if (verbose) print("Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+  this->trace_msg(this->trace, 4, "Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
 
   handle_clk_high(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
   handle_clk_low(timestamp, sdio0, sdio1, sdio2, sdio3, mask);
@@ -448,7 +467,7 @@ void Spim_verif::handle_clk_high(int64_t timestamp, int sdio0, int sdio1, int sd
   if (state == STATE_GET_CMD)
   {
     current_cmd = (current_cmd << 1) | sdio0;
-    if (verbose) print("Received command bit (count: %d, pending: %x, bit: %d)", cmd_count, current_cmd, sdio0);
+    this->trace_msg(this->trace, 4, "Received command bit (count: %d, pending: %x, bit: %d)", cmd_count, current_cmd, sdio0);
     cmd_count++;
     if (cmd_count == 64)
     {
@@ -475,7 +494,7 @@ void Spim_verif::handle_clk_low(int64_t timestamp, int sdio0, int sdio1, int sdi
 
 void Spim_verif::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
-  if (verbose) print("SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
+  this->trace_msg(this->trace, 4, "SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
 
   if (prev_sck == 1 && !sck)
   {
