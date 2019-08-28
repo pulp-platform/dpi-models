@@ -197,7 +197,7 @@ Camera::Camera(js::config *config, void *handle) : Dpi_model(config, handle)
 
   this->i2c_slave = new Camera_i2c_slave(this, 0x24);
 
-  this->trace = this->trace_new("camera");
+  this->trace = this->trace_new(config->get_child_str("name").c_str());
 }
 
 void Camera::start()
@@ -505,12 +505,12 @@ void Camera_i2c_slave::handle_byte(uint8_t byte)
     this->pending_addr = this->pending_addr | byte;
     this->pending_bytes = 2;
 
-    this->top->trace_msg(this->top->trace, 2, "Reg access (address: 0x%x, is_read: %d)", this->pending_addr, this->top->i2c_is_read);
     if (this->top->i2c_is_read)
     {
       this->pending_addr = 0;
       this->pending_bytes = 0;
       this->send_byte(0x00);
+      this->top->trace_msg(this->top->trace, 2, "Reading register (address: 0x%x, value: 0x%x)", this->pending_addr, 0);
     }
     else
     {

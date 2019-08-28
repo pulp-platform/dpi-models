@@ -133,6 +133,7 @@ private:
 #endif
 
   madctl_t madctl;
+  void *trace;
 };
 
 
@@ -184,6 +185,8 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
 
   this->width = 240;
   this->height = 320;
+
+  this->trace = this->trace_new(config->get_child_str("name").c_str());
 
 #if defined(__USE_SDL__)
 
@@ -245,11 +248,15 @@ void ili9341::init()
 void ili9341::gpio_edge(int64_t timestamp, int data)
 {
   this->is_command = !data;
+
+  this->trace_msg(this->trace, 3, "CMD GPIO edge (is_command: %d)", this->is_command);
 }
 
 void ili9341::cs_edge(int64_t timestamp, int cs)
 {
   this->active = !cs;
+
+  this->trace_msg(this->trace, 3, "CS edge (active: %d)", this->active);
 
   if (this->prev_cs == 1 && cs == 0)
   {
@@ -395,7 +402,7 @@ void ili9341::update(uint16_t pixel)
 
 void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
-  if (verbose) print("Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+  this->trace_msg(this->trace, 4, "Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
 
   if (this->active)
   {
@@ -405,6 +412,8 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
     if (this->is_command && this->pending_bits == 8)
     {
       this->pending_bits = 0;
+  
+      this->trace_msg(this->trace, 3, "Received command (command: 0x%2.2x)", this->pending_word & 0xff);
 
       switch (this->pending_word & 0xff)
       {
@@ -514,7 +523,23 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
           break;
 
         case 0x26:
+          this->waiting_bits = 1*8;
+          break;
+
+        case 0xE0:
           this->waiting_bits = 15*8;
+          break;
+
+        case 0xE1:
+          this->waiting_bits = 15*8;
+          break;
+
+        case 0x11:
+          this->waiting_bits = 1*8;
+          break;
+
+        case 0x29:
+          this->waiting_bits = 1*8;
           break;
 
         default:
@@ -530,6 +555,7 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
       {
         case STATE_SET_MADCTL: 
           this->madctl.raw = this->pending_word & 0xff;
+          this->trace_msg(this->trace, 2, "Setting MADCTL (value: 0x%2.2x)", this->madctl.raw);
           this->state = STATE_NONE;
           break;
 
@@ -539,6 +565,7 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
           this->current_posx = posx;
           this->windows_width = this->pending_word & 0xffff;
           this->state = STATE_NONE;
+          this->trace_msg(this->trace, 2, "Setting column (posx: %d, width: %d)", this->posx, this->windows_width);
           break;
 
         case STATE_SET_PAGE: 
@@ -547,10 +574,12 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
           this->current_posy = posy;
           this->windows_height = this->pending_word & 0xffff;
           this->state = STATE_NONE;
+          this->trace_msg(this->trace, 2, "Setting page (posy: %d, height: %d)", this->posy, this->windows_height);
           break;
 
         case STATE_MEM_WRITE: 
           this->update(this->pending_word & 0xffff);
+          this->trace_msg(this->trace, 2, "Writing pixel (value: 0x%4.4x)", this->pending_word & 0xffff);
           break;
 
         case STATE_NONE: 
