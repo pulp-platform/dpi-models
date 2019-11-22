@@ -73,6 +73,7 @@ private:
   I2s_mic_channel *channels[2];
   bool pdm;
   bool ddr;
+  bool dual;
   int freq;
   int flush_data;
   int chain_size;
@@ -145,7 +146,8 @@ Stim_txt::Stim_txt(Microphone *top, void *handle, std::string file, int width, i
 
 #ifdef USE_SNDFILE
 
-    sndfile = SndfileHandle (file, SFM_READ, SF_FORMAT_WAV | SF_FORMAT_PCM_16) ;
+    unsigned int pcm_width = width == 16 ? SF_FORMAT_PCM_16 : SF_FORMAT_PCM_32;
+    sndfile = SndfileHandle (file, SFM_READ, SF_FORMAT_WAV | pcm_width) ;
     freq = sndfile.samplerate ();
 
 #else
@@ -178,8 +180,21 @@ long long Stim_txt::getDataFromFile()
   if (useLibsnd) {
 
 #ifdef USE_SNDFILE
-    int16_t result;
-    sndfile.read ((short int *)&result, 1);
+
+    int32_t result;
+    if (this->width <= 16)
+    {
+      int16_t sample;
+      sndfile.read (&sample, 1);
+      result = (int32_t)sample;
+    }
+    else if (this->width <= 32)
+    {
+      int32_t sample;
+      sndfile.read (&sample, 1);
+      result = (int32_t)sample;
+    }
+
     return result;
 #else
     return 0;
@@ -369,7 +384,7 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
     // We ignore WS and send a data at each edge
     if (prevSck == 0 && sck == 1) {
       // Rising edge, prepare data from second microphone so that it is sampled during th next falling edge
-      setData(timestamp, 1, sck, ws);
+      setData(timestamp, 1, sck, 0);
     } else {
       if (flush_data >= 0)
       {
@@ -382,13 +397,7 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
       }
 
       // Falling edge, prepare data from first microphone so that it is sampled during th next raising edge
-      setData(timestamp, 0, sck, ws);
-    }
-
-    if (prevWs != ws)
-    {
-      flush_data = 0;
-      prevWs = ws;
+      setData(timestamp, 0, sck, 0);
     }
 
   } else {
@@ -443,9 +452,10 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
         setData(timestamp, sck, ws);
       } else if (prevSck == 0 && sck == 1) {
       
-        if (prevWs != ws) {
+        if (this->dual && prevWs != ws) {
+          clrData(timestamp, currentChannel);
           flush_data = 0;
-          currentChannel = 0;
+          currentChannel = ws;
           prevWs = ws;
         }
       }
@@ -470,6 +480,7 @@ flush_data(-1)
   this->width = config->get_child_int("width");
   this->pdm = config->get_child_bool("pdm");
   this->ddr = config->get_child_bool("ddr");
+  this->dual = config->get_child_bool("dual");
   this->freq = config->get_child_int("frequency");
   this->chain_size = config->get_child_int("chain_size");
 
@@ -483,7 +494,7 @@ flush_data(-1)
     this->print("Instantiated I2S microphone model (i2s_microphone) (width: %d, stimLeft: %s, stimRight: %s)", this->width, this->stimLeftPath.c_str(), this->stimRightPath.c_str());
 
     this->channels[0] = new I2s_mic_channel(0, this, handle, width, stimLeftPath, pdm, freq);
-    if (ddr) channels[1] = new I2s_mic_channel(1, this, handle, width, stimRightPath, pdm, freq);
+    if (this->ddr || this->dual) this->channels[1] = new I2s_mic_channel(1, this, handle, width, stimRightPath, pdm, freq);
   }
   else
   {
