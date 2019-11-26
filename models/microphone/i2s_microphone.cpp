@@ -452,11 +452,21 @@ void Microphone::edge(int64_t timestamp, int sck, int ws, int sd)
         setData(timestamp, sck, ws);
       } else if (prevSck == 0 && sck == 1) {
       
-        if (this->dual && prevWs != ws) {
-          clrData(timestamp, currentChannel);
-          flush_data = 0;
-          currentChannel = ws;
-          prevWs = ws;
+        if (prevWs != ws) {
+          if (this->dual)
+          {
+            clrData(timestamp, currentChannel);
+            flush_data = 0;
+            currentChannel = ws;
+            prevWs = ws;
+          }
+          else
+          {
+            clrData(timestamp, currentChannel);
+            flush_data = 0;
+            currentChannel = 0;
+            prevWs = ws;
+          }
         }
       }
     }
