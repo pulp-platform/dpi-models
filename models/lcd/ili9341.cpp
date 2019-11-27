@@ -92,6 +92,7 @@ protected:
   void cs_edge(int64_t timestamp, int cs);
 
   void gpio_edge(int64_t timestamp, int data);
+  void check_open();
 
 
 private:
@@ -134,6 +135,7 @@ private:
 
   madctl_t madctl;
   void *trace;
+  bool is_opened;
 };
 
 
@@ -165,6 +167,38 @@ void ili9341::fb_routine()
 #endif
 }
 
+void ili9341::check_open()
+{
+#if defined(__USE_SDL__)
+
+  if (!this->is_opened)
+  {
+    this->is_opened = true;
+
+    this->pixels = new uint32_t[this->width*this->height];
+    memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
+
+    SDL_Init(SDL_INIT_VIDEO);
+
+    this->window = SDL_CreateWindow("lcd_ili9341",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, this->width, this->height, 0);
+
+    this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+
+    this->texture = SDL_CreateTexture(this->renderer,
+        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, this->width, this->height);
+
+    SDL_UpdateTexture(this->texture, NULL, this->pixels, this->width * sizeof(Uint32));
+
+    SDL_RenderClear(this->renderer);
+    SDL_RenderCopy(this->renderer, this->texture, NULL, NULL);
+    SDL_RenderPresent(this->renderer);
+
+    this->thread = new std::thread(&ili9341::fb_routine, this);
+  }
+#endif
+}
+
 ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
 {
   verbose = true; //config->get("verbose")->get_bool();
@@ -176,6 +210,7 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
 
   this->init();
 
+  this->is_opened = false;
   this->pending_bits = 0;
   this->waiting_bits = 8;
   this->is_command = true;
@@ -247,6 +282,8 @@ void ili9341::init()
 
 void ili9341::gpio_edge(int64_t timestamp, int data)
 {
+  this->check_open();
+
   this->is_command = !data;
 
   this->trace_msg(this->trace, 3, "CMD GPIO edge (is_command: %d)", this->is_command);
@@ -254,6 +291,8 @@ void ili9341::gpio_edge(int64_t timestamp, int data)
 
 void ili9341::cs_edge(int64_t timestamp, int cs)
 {
+  this->check_open();
+
   this->active = !cs;
 
   this->trace_msg(this->trace, 3, "CS edge (active: %d)", this->active);
@@ -403,6 +442,8 @@ void ili9341::update(uint16_t pixel)
 void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
   this->trace_msg(this->trace, 4, "Edge (timestamp: %ld, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sdio0, sdio1, sdio2, sdio3, mask);
+
+  this->check_open();
 
   if (this->active)
   {
@@ -593,6 +634,8 @@ void ili9341::edge(int64_t timestamp, int sdio0, int sdio1, int sdio2, int sdio3
 
 void ili9341::sck_edge(int64_t timestamp, int sck, int sdio0, int sdio1, int sdio2, int sdio3, int mask)
 {
+  this->check_open();
+
   if (verbose) print("SCK edge (timestamp: %ld, sck: %d, data_0: %d, data_1: %d, data_2: %d, data_3: %d, mask: 0x%x)", timestamp, sck, sdio0, sdio1, sdio2, sdio3, mask);
 
 }
