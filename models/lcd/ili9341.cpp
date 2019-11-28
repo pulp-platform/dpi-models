@@ -222,38 +222,6 @@ ili9341::ili9341(js::config *config, void *handle) : Dpi_model(config, handle)
   this->height = 320;
 
   this->trace = this->trace_new(config->get_child_str("name").c_str());
-
-#if defined(__USE_SDL__)
-
-  this->pixels = new uint32_t[this->width*this->height];
-  memset(this->pixels, 255, this->width * this->height * sizeof(Uint32));
-
-  if (config->get_child_bool("enabled"))
-  {
-    SDL_Init(SDL_INIT_VIDEO);
-
-    this->window = SDL_CreateWindow("lcd_ili9341",
-        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, this->width, this->height, 0);
-
-    this->renderer = SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
-
-    this->texture = SDL_CreateTexture(this->renderer,
-        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, this->width, this->height);
-
-    SDL_UpdateTexture(this->texture, NULL, this->pixels, this->width * sizeof(Uint32));
-
-    SDL_RenderClear(this->renderer);
-    SDL_RenderCopy(this->renderer, this->texture, NULL, NULL);
-    SDL_RenderPresent(this->renderer);
-
-    this->thread = new std::thread(&ili9341::fb_routine, this);
-  }
-  else
-  {
-    this->window = NULL;
-  }
-#endif
-
 }
 
 void ili9341_gpio_itf::edge(int64_t timestamp, int data)
@@ -307,6 +275,8 @@ void ili9341::cs_edge(int64_t timestamp, int cs)
 
 void ili9341::update(uint16_t pixel)
 {
+  this->check_open();
+
 #if defined(__USE_SDL__)
 
   int r = ((pixel >> 11) & 0x1f) << 3;
@@ -345,7 +315,7 @@ void ili9341::update(uint16_t pixel)
 
 
 
-  int pos = posy*this->width + posx;
+  unsigned int pos = posy*this->width + posx;
 
   //printf("WRITE PIXEL AT %d posx %d posy %d mv %d mx %d my %d\n", pos, this->current_posx, this->current_posy, this->madctl.mv, this->madctl.mx, this->madctl.my);
 
