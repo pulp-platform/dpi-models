@@ -86,7 +86,6 @@ private:
 
 void Uart_tb::start()
 {
-  printf("uart_tb start\n");
   create_task((void *)&Uart_tb::dpi_uart_task_stub, this);
 }
 
@@ -102,7 +101,6 @@ void Uart_tb::dpi_uart_stdin_task_stub(Uart_tb *_this)
 
 Uart_tb::Uart_tb(js::config *config, void *handle) : Dpi_model(config, handle)
 {
-  printf("uart tb init\n");
   baudrate = config->get("baudrate")->get_int();
   loopback = config->get("loopback")->get_bool();
   stdout = config->get("stdout")->get_bool();
