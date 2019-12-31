@@ -22,6 +22,10 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <iostream>
+#include <common/telnet_proxy.hpp>
 
 class Uart_tb;
 
@@ -53,6 +57,11 @@ private:
   void dpi_task(void);
   bool rx_is_sampling(void);
   void stdin_task(void);
+
+  bool open_telnet_socket(int);
+  void telnet_listener(void);
+  void telnet_loop(int);
+
   static void dpi_uart_task_stub(Uart_tb *);
   static void dpi_uart_stdin_task_stub(Uart_tb *);
 
@@ -62,30 +71,40 @@ private:
   void start_rx_sampling(int baudrate);
   void stop_rx_sampling();
 
-  int period;
+  uint64_t period;
   bool tx_wait_start = true;
   bool tx_wait_stop = false;
   int current_tx;
   int current_rx;
-  int baudrate;
+  uint64_t baudrate;
   int nb_bits;
   uint32_t rx_bit_buffer = 0;
   int rx_nb_bits = 0;
   bool loopback;
   bool stdout;
-  bool stdin = true;
+  bool stdin;
+  bool telnet;
   bool sampling_rx = false;
   bool sampling_tx = false;
+  bool telnet_error = false;
   uint8_t byte;
   FILE *tx_file = NULL;
 
   std::thread *stdin_thread;
-  pthread_mutex_t rx_mutex;
+
+  std::thread *telnet_loop_thread;
+  std::thread *telnet_listener_thread;
+  int telnet_socket;
+  int telnet_port;
+  
+  Telnet_proxy *telnet_proxy;
+  std::mutex rx_mutex;
   Uart_itf *uart;
 };
 
 void Uart_tb::start()
 {
+  print("uart_tb start\n");
   create_task((void *)&Uart_tb::dpi_uart_task_stub, this);
 }
 
@@ -101,13 +120,18 @@ void Uart_tb::dpi_uart_stdin_task_stub(Uart_tb *_this)
 
 Uart_tb::Uart_tb(js::config *config, void *handle) : Dpi_model(config, handle)
 {
+  print("uart tb init\n");
   baudrate = config->get("baudrate")->get_int();
   loopback = config->get("loopback")->get_bool();
   stdout = config->get("stdout")->get_bool();
   stdin = config->get("stdin")->get_bool();
+  telnet = config->get("telnet")->get_bool();
+  if(telnet)
+  {
+    telnet_port = config->get("telnet_port")->get_int();
+  }
   std::string tx_filename = config->get("tx_file")->get_str();
-  pthread_mutex_init(&rx_mutex, NULL);
-  period = 1000000000000/baudrate;
+  period = 1000000000000UL/baudrate;
   print("Instantiated uart model (baudrate: %d, loopback: %d, stdout: %d, tx_file: %s)", baudrate, loopback, stdout, tx_filename.c_str());
   if (tx_filename != "")
   {
@@ -119,7 +143,11 @@ Uart_tb::Uart_tb(js::config *config, void *handle) : Dpi_model(config, handle)
   }
   uart = new Uart_tb_uart_itf(this);
   create_itf("uart", static_cast<Uart_itf *>(uart));
-  if(stdin)
+  if (this->telnet)
+  {   
+    this->telnet_proxy = new Telnet_proxy(this->telnet_port);
+  }
+  if (this->stdin || this->telnet)
   {
     stdin_thread = new std::thread(&Uart_tb::stdin_task, this);
   }
@@ -146,8 +174,15 @@ void Uart_tb::tx_sampling()
     nb_bits++;
     if (nb_bits == 8) {
       print("Sampled TX byte (value: 0x%x)", byte);
-      if (stdout) printf("%c", byte);
-      if (tx_file) {
+      if (this->telnet)
+      {
+        this->telnet_proxy->push_byte(&byte);
+      }
+      else if (this->stdout)
+      {
+        std::cout << byte;
+      }
+      else if (tx_file) {
         fwrite((void *)&byte, 1, 1, tx_file);
       }
       print("Waiting for stop bit");
@@ -158,10 +193,10 @@ void Uart_tb::tx_sampling()
 
 void Uart_tb::rx_sampling()
 {
-  pthread_mutex_lock(&rx_mutex);
+  rx_mutex.lock();
   this->current_rx = this->rx_bit_buffer & 0x1;
   this->rx_bit_buffer = this->rx_bit_buffer >> 1;
-  printf("Sampling bit (value: %d)\n", current_rx);
+  //std::cerr << "Sampling bit " << current_rx << std::endl;
 
   uart->rx_edge(this->current_rx);
   rx_nb_bits++;
@@ -169,12 +204,12 @@ void Uart_tb::rx_sampling()
   {
     this->stop_rx_sampling();
   }
-  pthread_mutex_unlock(&rx_mutex);
+  rx_mutex.unlock();
 }
 
 void Uart_tb::tx_edge(int64_t timestamp, int tx)
 {
-  if (loopback) uart->rx_edge(tx);
+  if (this->loopback) uart->rx_edge(tx);
 
   current_tx = tx;
   
@@ -239,9 +274,9 @@ void Uart_tb::dpi_task(void)
 
 bool Uart_tb::rx_is_sampling(void)
 {
-    pthread_mutex_lock(&rx_mutex);
+    rx_mutex.lock();
     bool ret = this->sampling_rx;
-    pthread_mutex_unlock(&rx_mutex);
+    rx_mutex.unlock();
     return ret;
 }
 
@@ -249,22 +284,29 @@ void Uart_tb::stdin_task(void)
 {
   while(1)
   {
-    printf("stdin task sampling\n");
-    int c = 0;
-    c = getchar();
-    printf("got char:%c\n",c);
+    print("stdin task sampling\n");
+    uint8_t c = 0;
+    if (this->stdin)
+    {
+      c = getchar();
+    }
+    else if (this->telnet)
+    {
+      this->telnet_proxy->pop_byte(&c);
+    }
+    print("got char:%c\n",c);
     while(this->rx_is_sampling())
     {// TODO: use cond instead
       usleep(5);
     }
-    pthread_mutex_lock(&rx_mutex);
+    // TODO: use once atomic function for this instead
+    this->rx_mutex.lock();
     rx_bit_buffer = 0;
-    rx_bit_buffer |= c << 1;
+    rx_bit_buffer |= ((uint32_t)c) << 1;
     rx_bit_buffer |= 1 << 9;
     rx_nb_bits = 0;
     this->start_rx_sampling(baudrate);
-    pthread_mutex_unlock(&rx_mutex);
-    printf("raising event\n");
+    this->rx_mutex.unlock();
     raise_event_from_ext();
     printf("raised_event\n");
   }

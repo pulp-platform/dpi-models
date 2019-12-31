@@ -143,6 +143,7 @@ Spiflash::Spiflash(js::config *config, void *handle) : Dpi_model(config, handle)
   verbose = true; //config->get("verbose")->get_bool();
   print("Creating SPIFLASH model (mem_size: 0x%x)", this->mem_size);
   data = new unsigned char[mem_size];
+  memset(data, 0xFF, mem_size);
   qspi0 = new Spiflash_qspi_itf(this);
   create_itf("input", static_cast<Dpi_itf *>(qspi0));
 
@@ -403,7 +404,7 @@ void Spiflash::handle_command(uint8_t cmd)
     this->is_read = true;
     this->wait_cycles = this->dummy_cycles;
   }
-  else if (this->current_cmd == 0xEB)
+  else if (this->current_cmd == 0x6B)
   {
     this->trace_msg(this->trace, 1, "SPI fast quad read");
     this->quad_command = true;
