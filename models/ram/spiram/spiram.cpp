@@ -123,7 +123,7 @@ Spiram::Spiram(js::config *config, void *handle) : Dpi_model(config, handle)
   this->qpi = false;
   this->refresh_timestamp = -1;
   this->refresh_failure = false;
-  this->cs_pulse_width = 4*1000*1000;
+  this->cs_pulse_width = 8*1000*1000;
 
   this->trace = this->trace_new(config->get_child_str("name").c_str());
 }
